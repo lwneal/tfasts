@@ -5,25 +5,30 @@
 #include <limits.h>
 #include <float.h>
 #include <assert.h>
+#include <math.h>
 
 using namespace std;
 
+
 class pVectorUtils
 {
-public:
-	template <class T> static bool vector_contains(vector<T>& v, const T& x)
+public:	
+	static bool sort_int_bool_pair(const pair<int,float>& a, const pair<int,float>& b)
 	{
-		for(int i = 0; i < v.size(); ++i)
-			if( v[i] == x ) return true;
-		return false;
+		return a.second > b.second;
 	}
-	
+
+	static double log2( double n )  
+	{  
+		// log(n)/log(2) is log2.  
+		return log( n ) / log( 2.0 );  
+	}
 	// various versions of argmin and argmax
 	static int argmax(vector<int>& v)
 	{
 		int maxSoFar = INT_MIN;
 		int maxIndex = 0;
-		for(int i = 0; i < v.size(); ++i)
+		for(int i = 0; i < (int)v.size(); ++i)
 		{
 			if( v[i] > maxSoFar )
 			{
@@ -38,7 +43,7 @@ public:
 	{
 		float maxSoFar = -FLT_MIN;
 		int maxIndex = 0;
-		for(int i = 0; i < v.size(); ++i)
+		for(int i = 0; i < (int)v.size(); ++i)
 		{
 			if( v[i] > maxSoFar )
 			{
@@ -53,7 +58,7 @@ public:
 	{
 		int minSoFar = INT_MAX;
 		int minIndex = 0;
-		for(int i = 0; i < v.size(); ++i)
+		for(int i = 0; i < (int)v.size(); ++i)
 		{
 			if( v[i] < minSoFar )
 			{
@@ -68,7 +73,7 @@ public:
 	{
 		float minSoFar = FLT_MAX;
 		int minIndex = 0;
-		for(int i = 0; i < v.size(); ++i)
+		for(int i = 0; i < (int)v.size(); ++i)
 		{
 			if( v[i] < minSoFar )
 			{
@@ -87,20 +92,39 @@ public:
 		return -1;
 	}
 	
+	template <class T> static bool vector_contains(vector<T>& v, const T& x)
+	{
+		for(int i = 0; i < v.size(); ++i)
+			if( v[i] == x ) return true;
+		return false;
+	}
+	
 	// normalize a vector so its elements add up to 1
 	static void normalizeVectorToPDF(vector<float>& w)
 	{
 		float sum = 0;
-		for(int i = 0; i < w.size(); ++i) sum += w[i];
-		assert(sum != 0);
-		for(int i = 0; i < w.size(); ++i) w[i] /= sum;
+		for(int i = 0; i < (int)w.size(); ++i) 
+			sum += w[i];
+		for(int i = 0; i < (int)w.size(); ++i) 
+			w[i] /= sum;
 	}
 	
 	static float giniForDistribution(vector<float>& prob)
 	{
 		float gini = 1;
-		for(int i = 0; i < prob.size(); ++i) gini -= prob[i] * prob[i];
+		for(int i = 0; i < (int)prob.size(); ++i) gini -= prob[i] * prob[i];
 		return gini;
+	}
+	
+	template <class T> static void cout_vector(vector<T>& v)
+	{
+		for(int i = 0; i < (int)v.size(); ++i) cout << v[i] << (i == v.size() - 1 ? "" : "\n");
+		cout << endl;
+	}
+	
+	static void append(vector<float>& src, vector<float>& dst)
+	{
+		for(int i = 0; i < (int)src.size(); ++i) dst.push_back(src[i]);
 	}
 };
 
@@ -135,12 +159,6 @@ void copy2DVector(vector< vector<float> >& src, vector< vector<float> >& dst)
 		dst.push_back(src[i]);
 }
 
-template <class T> bool vector_contains(vector<T>& v, const T& x)
-{
-	for(int i = 0; i < v.size(); ++i)
-		if( v[i] == x ) return true;
-	return false;
-}
 
 // if v contains x, returns the index of x, otherwise -1
 template <class T> int index_of(vector<T>& v, const T& x)

@@ -1,4 +1,5 @@
 // this class provides a C++ stream style wrapper on top of C style text file I/O (which is faster than the C++ file IO routines).
+
 #pragma once
 
 #include <cstdio>
@@ -142,7 +143,12 @@ public:
 	// Returns true if the end of the file represented by this pFile has been
 	// reached (or if the file_ member is NULL).  Otherwise, this function
 	// returns false
-	bool eof() { if(!isOpen()) return true; else return feof(file_); }
+	bool eof() { 
+		if(!isOpen()) 
+			return true; 
+		else 
+			return (bool)feof(file_); 
+	}
 	
 	// Returns true if a valid stream exists and false otherwise.
 	bool isOpen() const { return (file_ != NULL); }
