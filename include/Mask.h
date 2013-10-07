@@ -44,6 +44,9 @@ public:
 	// Copy constructor
 	Mask(const Mask &copy);
 
+	// Inverse FFT to save as a WAV audio file
+	void save_wav(std::string &filename) const;
+
 	// Allows a given function to iterate over all coordinates in
 	//	this mask. Runs using as many threads as specified.
 	void foreach(pixel_fn_t fn, int num_threads = num_cores) const;

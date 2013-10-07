@@ -1,6 +1,7 @@
 #include "Mask.h"
 #include "Image.h"
 #include "Utility.h"
+#include "Features.h"
 #include "pRandomForest.h"
 
 #include "dlib/cmd_line_parser.h"
@@ -67,15 +68,7 @@ int main(int argc, char *argv[]) {
 
 	Mask spec(opt.input_path, opt.fft_width, opt.fft_step);
 
-	spec.band_pass(opt.hi_pass_hz);
-
-	spec = spec.whitening_filter();
-
-	spec = spec.norm_to_max();
-
-	spec.foreach([&](int x, int y) {
-		spec(x,y) = sqrt(spec(x,y));
-	});
+	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
 
 	Image img(spec);
 	cout << opt.input_path << " " << img.width() << "," << img.height() << endl;

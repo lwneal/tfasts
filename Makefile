@@ -1,11 +1,11 @@
 CC=clang++ -std=c++11 -stdlib=libc++
 CFLAGS=-g
 
-.PHONY: all test test_spectrogram test_learn clean
+.PHONY: all test test_spectrogram test_learn test_filter clean
 
-all: bin/spectrogram bin/learn
+all: bin/spectrogram bin/learn bin/filter
 
-test: test_spectrogram test_learn
+test: test_spectrogram test_learn test_filter
 
 test_spectrogram: all
 	@rm -rf test/*
@@ -14,19 +14,25 @@ test_spectrogram: all
 	&& bin/spectrogram hja_birds/wavs/PC5_20090703_100000_0010.wav test/test_3.bmp -w 1024 -s 128 -p 50\
 	&& echo "Passed tests: spectrogram"\
  	|| echo "Failed tests: spectrogram"
-	open test/*.bmp
 
-test_learn: all
-	@rm -rf test/*
+test_learn:
 	@bin/learn three_files/ -o test/test_model.rf \
 	&& echo "Passed tests: learn"\
  	|| echo "Failed tests: learn"
+
+test_filter:
+	@bin/filter hja_birds/wavs/PC13_20090512_070000_0060.wav test/filtered.wav -m test/test_model.rf \
+	&& echo "Passed tests: filter"\
+ 	|| echo "Failed tests: filter"
 
 bin/spectrogram: src/spectrogram.cpp Mask.o pRandomForest.o Image.o
 	${CC} ${CFLAGS} *.o src/spectrogram.cpp -I include -o bin/spectrogram
 
 bin/learn: src/learn.cpp Mask.o pRandomForest.o Image.o
 	${CC} ${CFLAGS} *.o src/learn.cpp -I include -o bin/learn
+
+bin/filter: src/filter.cpp Mask.o pRandomForest.o Image.o
+	${CC} ${CFLAGS} *.o src/filter.cpp -I include -o bin/filter
 
 source.o: include/dlib/all/source.cpp
 	${CC} ${CFLAGS} -DDLIB_NO_GUI_SUPPORT -I include -c include/dlib/all/source.cpp

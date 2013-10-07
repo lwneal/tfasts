@@ -3,6 +3,7 @@
 
 #include "fft_vec_to_mat.h"
 #include "audio_loader.h"
+#include "FFT.h"
 
 #include "dlib/image_transforms.h"
 #include "dlib/threads.h"
@@ -122,6 +123,69 @@ Mask::Mask(const Mask &copy):
 	copy.foreach([&](int x, int y) {
 		at(x,y) = copy(x,y);
 	});
+}
+
+void Mask::save_wav(string &filename) const {
+	if ( filename.rfind(".wav") == string::npos 
+		&& filename.rfind(".WAV") == string::npos)
+		filename = filename.append(".wav");
+	/*
+	// Output at 16-bit mono PCM
+	pWavData outWav( samplingFrequency, 16, 1);
+
+	// Floating point buffers for the FFT library
+	float* realIn = new float[windowSize];
+	float* imagIn = new float[windowSize];
+	float* realOut = new float[windowSize];
+	float* imagOut = new float[windowSize];
+		
+	// For each frame of audio,
+	for (int i = 0; i < width(); i++) {
+		// In order to apply the inverse FFT, we need windowSize coefficients
+		//  (so we get a full frame of audio back). To do this, we mirror
+		//  the left half of the signal to the right, taking the complex
+		//  conjugate of each value. 
+		for (int j = 0; j < windowSize/2; j++) {
+			realIn[j] = fftOutput[i][j].first;
+			imagIn[j] = fftOutput[i][j].second;
+			
+			realIn[windowSize - j] = fftOutput[i][j].first;
+			imagIn[windowSize - j] = -fftOutput[i][j].second;
+		}
+		// Also, the coefficient in the middle (zero frequency) has to be zeroed.
+		realIn[windowSize/2 + 1] = 0;
+		imagIn[windowSize/2 + 1] = 0;
+
+		// Here, we apply the inverse FFT. Assuming that the conjugate-mirror 
+		//  property holds true, the output should consist of windowSize real
+		//  coefficients, representing the audio signal in this frame.
+		// Imaginary coefficients output should be 0 (+/- epsilon)
+		FFT( windowSize, true, realIn, imagIn, realOut, imagOut );
+		
+		// Here, we fold the time-domain values back into something resembling
+		//  the original signal. Each frame overlaps by windowSize - windowStep
+		// (Except for the first frame)
+		int framesToAdd = i ? windowStep : windowSize;
+		outWav.samples_.insert( outWav.samples_.end(), framesToAdd, 0);
+		
+		for (int m = 0; m < windowSize; m++ ) {
+			outWav.samples_[ outWav.samples_.size() - windowSize + m ] += realOut[m];
+		}
+	}
+	
+	int clampCount = 0;
+	for (int i = 0; i < outWav.samples_.size(); i++)
+		clampCount += pUtils::clamp(outWav.samples_[i], -1.0, 1.0);
+	if (clampCount)
+		cout << "Clamped " << clampCount << " samples to [-1,1]" << endl;
+	
+	outWav.writeWAV(filename);
+	
+	delete[] realOut;
+	delete[] imagOut;
+	delete[] realIn;
+	delete[] imagIn;
+	*/
 }
 
 // We use a dlib mutex to protect the 'maxval' var
