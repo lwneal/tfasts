@@ -4,6 +4,7 @@
 #include "fft_vec_to_mat.h"
 #include "audio_loader.h"
 #include "FFT.h"
+#include "pWavData.h"
 
 #include "dlib/image_transforms.h"
 #include "dlib/threads.h"
@@ -127,67 +128,78 @@ Mask::Mask(const Mask &copy):
 	});
 }
 
-void Mask::save_wav(string &filename) const {
-	if ( filename.rfind(".wav") == string::npos 
-		&& filename.rfind(".WAV") == string::npos)
-		filename = filename.append(".wav");
-	/*
+void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
+	if ( wav_out.rfind(".wav") == string::npos 
+		&& wav_out.rfind(".WAV") == string::npos)
+		wav_out = wav_out.append(".wav");
+	
+	vector<double> audio;
+	int sample_rate;
+	load_pcm_wav_mono(wav_in, audio, sample_rate);
+	std::cout << "Loaded " << audio.size() << " samples at " << sample_rate << "hz" << std::endl;
+
+	Mask real(width(), height());
+	Mask imag(width(), height());
+	int fft_size = 1024;
+	int fft_step = 128;
+	complex_fft(*(real.data), *(imag.data), audio, fft_size, fft_step);
+	
+
 	// Output at 16-bit mono PCM
-	pWavData outWav( samplingFrequency, 16, 1);
+	pWavData outWav(sample_rate, 16, 1);
 
 	// Floating point buffers for the FFT library
-	float* realIn = new float[windowSize];
-	float* imagIn = new float[windowSize];
-	float* realOut = new float[windowSize];
-	float* imagOut = new float[windowSize];
+	double* realIn = new double[fft_size];
+	double* imagIn = new double[fft_size];
+	double* realOut = new double[fft_size];
+	double* imagOut = new double[fft_size];
 		
 	// For each frame of audio,
 	for (int i = 0; i < width(); i++) {
-		// In order to apply the inverse FFT, we need windowSize coefficients
+		// In order to apply the inverse FFT, we need fft_size coefficients
 		//  (so we get a full frame of audio back). To do this, we mirror
 		//  the left half of the signal to the right, taking the complex
 		//  conjugate of each value. 
-		for (int j = 0; j < windowSize/2; j++) {
-			realIn[j] = fftOutput[i][j].first;
-			imagIn[j] = fftOutput[i][j].second;
+		for (int j = 0; j < fft_size/2; j++) {
+			realIn[j] = real(i,j);
+			imagIn[j] = imag(i,j);
 			
-			realIn[windowSize - j] = fftOutput[i][j].first;
-			imagIn[windowSize - j] = -fftOutput[i][j].second;
+			realIn[fft_size - j] = real(i,j);
+			imagIn[fft_size - j] = -imag(i,j);
 		}
 		// Also, the coefficient in the middle (zero frequency) has to be zeroed.
-		realIn[windowSize/2 + 1] = 0;
-		imagIn[windowSize/2 + 1] = 0;
+		realIn[fft_size/2 + 1] = 0;
+		imagIn[fft_size/2 + 1] = 0;
 
 		// Here, we apply the inverse FFT. Assuming that the conjugate-mirror 
-		//  property holds true, the output should consist of windowSize real
+		//  property holds true, the output should consist of fft_size real
 		//  coefficients, representing the audio signal in this frame.
 		// Imaginary coefficients output should be 0 (+/- epsilon)
-		FFT( windowSize, true, realIn, imagIn, realOut, imagOut );
+		FFT( fft_size, true, realIn, imagIn, realOut, imagOut );
 		
 		// Here, we fold the time-domain values back into something resembling
-		//  the original signal. Each frame overlaps by windowSize - windowStep
+		//  the original signal. Each frame overlaps by fft_size - fft_step
 		// (Except for the first frame)
-		int framesToAdd = i ? windowStep : windowSize;
+		int framesToAdd = i ? fft_step : fft_size;
 		outWav.samples_.insert( outWav.samples_.end(), framesToAdd, 0);
 		
-		for (int m = 0; m < windowSize; m++ ) {
-			outWav.samples_[ outWav.samples_.size() - windowSize + m ] += realOut[m];
+		for (int m = 0; m < fft_size; m++ ) {
+			outWav.samples_[ outWav.samples_.size() - fft_size + m ] += realOut[m];
 		}
 	}
 	
 	int clampCount = 0;
 	for (int i = 0; i < outWav.samples_.size(); i++)
-		clampCount += pUtils::clamp(outWav.samples_[i], -1.0, 1.0);
+		clampCount += clamp_val(outWav.samples_[i], -1.0f, 1.0f);
 	if (clampCount)
-		cout << "Clamped " << clampCount << " samples to [-1,1]" << endl;
+		std::cout << "Clamped " << clampCount << " samples to [-1,1]" << std::endl;
 	
-	outWav.writeWAV(filename);
+	outWav.writeWAV(wav_out);
 	
 	delete[] realOut;
 	delete[] imagOut;
 	delete[] realIn;
 	delete[] imagIn;
-	*/
 }
 
 // We use a dlib mutex to protect the 'maxval' var

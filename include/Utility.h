@@ -69,11 +69,14 @@ inline std::vector<std::string> get_full_filenames_from_dir(
 
 // Clamp 'val' to the range [min,max]
 template <typename T>
-inline void clamp_val(T& val, T min, T max) {
+inline bool clamp_val(T& val, T min, T max) {
 	if (val < min)
 		val = min;
 	else if (val > max)
 		val = max;
+	else
+		return false;
+	return true;
 }
 
 // Extend a dlib::rectangle to include the given point

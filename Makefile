@@ -46,7 +46,7 @@ Grid.o: include/Grid.h src/Grid.cpp source.o
 Image.o: include/Image.h src/Image.cpp Mask.o Grid.o source.o
 	${CC} ${CFLAGS} -I include -c src/Image.cpp
 
-FFT.o: src/FFT.cpp include/FFT.h
+FFT.o: src/FFT.cpp include/FFT.h pWavData.o
 	${CC} ${CFLAGS} -I include -c src/FFT.cpp
 
 pRFDecisionTree.o: include/pRFDecisionTree.h src/pRFDecisionTree.cpp
@@ -54,6 +54,9 @@ pRFDecisionTree.o: include/pRFDecisionTree.h src/pRFDecisionTree.cpp
 
 pRandomForest.o: include/pRandomForest.h src/pRandomForest.cpp pRFDecisionTree.o FFT.o
 	${CC} ${CFLAGS} -I include -c src/pRandomForest.cpp
+
+pWavData.o: include/pWavData.h include/wav_in.h include/wav_out.h
+	${CC} ${CFLAGS} -I include -c src/wav_in.cpp src/wav_out.cpp
 
 clean:
 	rm -rf *.o bin/* test_*.bmp

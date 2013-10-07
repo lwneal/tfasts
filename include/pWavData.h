@@ -26,7 +26,7 @@ public:
 	{
 		WAV_IN infile(filename.c_str());
 		sampleRate_ = int(infile.get_sample_rate_hz());
-		bitsPerSample_ = unsigned int(infile.get_bits_per_sample());
+		bitsPerSample_ = (unsigned int)(infile.get_bits_per_sample());
 		channels_ = infile.get_num_channels();
 	
 		if( channels_ == 2  ) // if 2 channels, we need to convert to mono

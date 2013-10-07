@@ -38,14 +38,15 @@ public:
 
 	// The idea here is that we generate each mask with some
 	// per-pixel kernel function, which is applied in parallel
-	Mask(int width, int height, pixel_initfn_t fn, 
+	Mask(int width, int height, 
+		pixel_initfn_t fn = [&](int x, int y) {return 0;}, 
 		int num_threads = num_cores);
 
 	// Copy constructor
 	Mask(const Mask &copy);
 
-	// Inverse FFT to save as a WAV audio file
-	void save_wav(std::string &filename) const;
+	// Open a WAV file, multiply this mask over it, then output it
+	void attenuate_wav(std::string &wav_in, std::string &wav_out) const;
 
 	// Allows a given function to iterate over all coordinates in
 	//	this mask. Runs using as many threads as specified.

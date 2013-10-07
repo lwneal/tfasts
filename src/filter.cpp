@@ -79,15 +79,15 @@ int main(int argc, char *argv[]) {
 
 	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
 
-	Mask filtered(spec.width(), spec.height(), [&](int x, int y) {
+	Mask scores(spec.width(), spec.height(), [&](int x, int y) {
 		vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
 		float score = rf.estimateClassProbabilities(feature)[0];
-		return score * spec.at(x,y);
+		return score;
 	});
 
-	// TODO: output this spectrogram as audio
-	Image img(filtered);
-	img.save(opt.output_path);
-
+	// blur scores?
+	
+	scores.attenuate_wav(opt.input_path, opt.output_path);
+	
 	return 0;
 }
