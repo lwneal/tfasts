@@ -1,7 +1,25 @@
 Time-Frequency Audio Segmentation Tool Set
 Oregon State University Bioacoustics Group
 
-TFASTS is a set of command-line tools for viewing and manipulating audio spectrograms.
+TFASTS is a set of command-line tools for manipulating audio in the spectrogram domain.
+
+You can use TFASTS to remove some noise from audio recordings, given examples of the type of sound you want to hear.
+
+Basic usage:
+
+        learn clearly_recorded_audio_files/african_swallows/ african_swallow.rf
+
+Scans your collection of audio recordings of African Swallow mating calls, and constructs a statistical model of their sound.
+
+        filter -m african_swallow.rf new_noisy_input.wav filtered_output.wav
+
+Given a new, noisy input audio file, uses the statistical model to remove everything that doesn't sound like an African Swallow.
+
+The quality of results depends on how many recordings of swallows you have, how much non-Swallow noise exists in the source recordings, and the parameters you use while constructing the model.
+
+
+Other Tools:
 
 spectrogram input.wav output.bmp
 	Converts audio files into viewable images.
+

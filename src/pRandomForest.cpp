@@ -78,14 +78,12 @@ void pRandomForest::save(string filename)
 {
 	pTextFile f(filename, PFILE_WRITE);
 		
-	/*
-	f << numClasses_ << endl;
+	f << numClasses_ << "\n";
 		
 	for(int i = 0; i < (int)trees_.size(); ++i)
 	{
-		f << trees_[i]->toString() << endl;
+		f << trees_[i]->toString() << "\n";
 	}
-	*/
 		
 	f.close();
 }
