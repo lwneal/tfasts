@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 
 #include "dlib/geometry.h"
 #include "dlib/dir_nav.h"
