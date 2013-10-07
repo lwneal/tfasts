@@ -1,8 +1,6 @@
 // NOTE: this is a modified version of my original random forest.
 // the main difference is that tree leaves store a histogram instead of a majority class
 
-#pragma once
-
 #include "pRandomForest.h"
 
 using namespace std;
@@ -80,12 +78,14 @@ void pRandomForest::save(string filename)
 {
 	pTextFile f(filename, PFILE_WRITE);
 		
+	/*
 	f << numClasses_ << endl;
 		
 	for(int i = 0; i < (int)trees_.size(); ++i)
 	{
 		f << trees_[i]->toString() << endl;
 	}
+	*/
 		
 	f.close();
 }
