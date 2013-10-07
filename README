@@ -1,0 +1,7 @@
+Time-Frequency Audio Segmentation Tool Set
+Oregon State University Bioacoustics Group
+
+TFASTS is a set of command-line tools for viewing and manipulating audio spectrograms.
+
+spectrogram input.wav output.bmp
+	Converts audio files into viewable images.

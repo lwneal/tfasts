@@ -7,7 +7,7 @@ all: spectrogram
 
 test: all
 	bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test_1.bmp
-	open test.bmp
+	open test_*.bmp
 
 spectrogram: src/spectrogram.cpp Mask.o pRandomForest.o Image.o
 	${CC} ${CFLAGS} *.o src/spectrogram.cpp -I include -o bin/spectrogram

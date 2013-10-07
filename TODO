@@ -1,0 +1,2 @@
+Add fft params, band-pass param to spectrogram
+Add Mask::Mask(Mask&, pixel_initfn_t);
