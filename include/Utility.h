@@ -4,7 +4,8 @@
 #include "dlib/geometry.h"
 #include "dlib/dir_nav.h"
 
-// Fun and useful functions for your everyday numerical tasks
+// How many threads should we run at a time?
+const int num_cores = 4;
 
 template <typename matrix_t>
 inline void foreach(matrix_t &object, std::function<void (int,int)> fn)
@@ -65,9 +66,6 @@ inline std::vector<std::string> get_full_filenames_from_dir(
 	std::sort(file_names.begin(), file_names.end());
 	return file_names;
 }
-
-// How many threads should we run at a time?
-const int num_cores = 1;
 
 // Clamp 'val' to the range [min,max]
 template <typename T>

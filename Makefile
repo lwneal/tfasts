@@ -1,18 +1,22 @@
 CC=clang++ -std=c++11 -stdlib=libc++
 CFLAGS=-g
 
-.PHONY: all test clean dlib
+.PHONY: all test clean
 
-all: spectrogram
+all: bin/spectrogram
 
 test: all
-	bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test_1.bmp
-	open test_*.bmp
+	@rm -rf test/*
+	@bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test/test_1.bmp \
+	&& bin/spectrogram hja_birds/wavs/PC9_20090512_070000_0090.wav test/test_2.bmp \
+	&& bin/spectrogram hja_birds/wavs/PC5_20090703_100000_0010.wav test/test_3.bmp -w 1024 -s 128 -p 50\
+	&& echo "Passed tests: spectrogram"\
+ 	|| echo "Failed tests: spectrogram"
+	open test/*.bmp
 
-spectrogram: src/spectrogram.cpp Mask.o pRandomForest.o Image.o
+bin/spectrogram: src/spectrogram.cpp Mask.o pRandomForest.o Image.o
 	${CC} ${CFLAGS} *.o src/spectrogram.cpp -I include -o bin/spectrogram
 
-dlib: source.o
 source.o: include/dlib/all/source.cpp
 	${CC} ${CFLAGS} -DDLIB_NO_GUI_SUPPORT -I include -c include/dlib/all/source.cpp
 

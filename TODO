@@ -1,2 +1,2 @@
-Add fft params, band-pass param to spectrogram
+Add ./spectrogram input/dir/ output/dir syntax for batching
 Add Mask::Mask(Mask&, pixel_initfn_t);

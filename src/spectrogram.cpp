@@ -1,5 +1,6 @@
 #include "Mask.h"
 #include "Image.h"
+#include "Utility.h"
 #include "pRandomForest.h"
 
 #include "dlib/cmd_line_parser.h"
@@ -10,55 +11,69 @@
 
 using namespace std;
 
-typedef dlib::cmd_line_parser<char>::check_1a_c ArgParser;
 typedef dlib::array2d<dlib::rgb_pixel> ImageRGB;
 typedef dlib::rgb_pixel Pixel;
 
-struct options {
+struct Options {
 	int fft_width = 512;
 	int fft_step = 256;
-	int high_pass_hz = 1000;
+	int hi_pass_hz = 1000;
+	string input_path;
+	string output_path;
+	vector<string> input_files() {
+		vector<string> files = get_full_filenames_from_dir(input_path, "");
+		if (files.size() == 0)
+			files.push_back(input_path);
+		return files;
+	}
+	bool good() {
+		return input_path.size() && output_path.size() 
+			&& fft_width > 0 && fft_step > 0
+			&& hi_pass_hz >= 0;
+	}
 };
 
-void spectrogram_parse_args(ArgParser &parser, int argc, char *argv[]) {
+Options spectrogram_parse_args(int argc, char *argv[]) {
+	dlib::cmd_line_parser<char>::check_1a_c parser;
 	parser.add_option("h", "Display this help message");
 	parser.add_option("i", "An input .wav audio file", 1);
 	parser.add_option("o", "Filename for output .bmp spectrogram",1);
+	parser.add_option("w", "Integer FFT width (2x the output spectrogram image height). Default 512", 1);
+	parser.add_option("s", "FFT Step (smaller step sizes result in a wider image). Default 256", 1);
+	parser.add_option("p", "High-Pass cutoff in Hz. Default 1000", 1);
 	parser.parse(argc, argv);
 
-	if (parser.option("h") || !parser.option("o")) {
-		cout << "spectrogram:" << endl;
-		cout << "\tspectrogram -i input_audio.wav -o output_img.bmp" << endl;
+	Options opts;
+	if (parser.number_of_arguments() > 0)
+		opts.input_path = parser[0];
+	if (parser.number_of_arguments() > 1)
+		opts.output_path = parser[1];
+
+	if (parser.option("i") && parser.option("i").count() > 0)
+		opts.input_path = parser.option("i").argument();
+	if (parser.option("o") && parser.option("o").count() > 0)
+		opts.output_path = parser.option("o").argument();
+	if (parser.option("w") && parser.option("w").count() > 0)
+		opts.fft_width = dlib::sa = parser.option("w").argument();
+	if (parser.option("s") && parser.option("s").count() > 0)
+		opts.fft_step = dlib::sa = parser.option("s").argument();
+	if (parser.option("p") && parser.option("p").count() > 0)
+		opts.hi_pass_hz = dlib::sa = parser.option("p").argument();
+		
+	if (!opts.good()) {
+		cout << "\tspectrogram sound.wav output.bmp" << endl;
 		parser.print_options();
 		exit(1);
 	}
-}
-
-void save_img(Mask &spec, string filename) {
-	cout << "Saving image size " << spec.width() << "," << spec.height() << " to " << filename << endl;
-
-	ImageRGB save_img(spec.height(), spec.width());
-	spec.foreach([&](int x, int y) {
-		double val = 255.0 * spec.at(x,y);
-		save_img[y][x] = Pixel(val,val,val);
-	});
-	dlib::save_bmp(save_img, filename);
+	return opts;
 }
 
 int main(int argc, char *argv[]) {
-	ArgParser args;
-	spectrogram_parse_args(args, argc, argv);
+	Options opt = spectrogram_parse_args(argc, argv);
 
-	string fn_in = args.option("i").argument();
-	string fn_out = args.option("o").argument();
+	Mask spec(opt.input_path, opt.fft_width, opt.fft_step);
 
-	int fft_width = 512;
-	int fft_step = 256;
-	int high_pass_hz = 1000;
-
-	Mask spec(fn_in, fft_width, fft_step);
-
-	int band_pass_px = (high_pass_hz * spec.height()) / 16000;
+	int band_pass_px = (opt.hi_pass_hz * spec.height()) / 16000;
 	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
 		return y < band_pass_px ? 0 : spec(x,y);
 	});
@@ -72,7 +87,7 @@ int main(int argc, char *argv[]) {
 	});
 
 	Image img(spec);
-	cout << fn_out << " " << img.width() << "," << img.height() << endl;
-	img.save(fn_out);
+	cout << opt.input_path << " " << img.width() << "," << img.height() << endl;
+	img.save(opt.output_path);
 	return 0;
 }
