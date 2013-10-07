@@ -52,9 +52,9 @@ struct RIFF_WAV_std_head {
 // Assumes vec_type implements push_back(float)
 // Returns the number of samples read
 template <typename vec_type>
-long load_pcm_wav_mono(std::string &filename, vec_type& samples) 
+long load_pcm_wav_mono(std::string &filename, vec_type& samples, int &sample_rate) 
 {
-    long initial_size = samples.size();
+	long initial_size = samples.size();
 	// Open a binary stream for the file
 	std::ifstream ifs(filename, std::ios::binary);
 	if (!ifs.good())
@@ -85,5 +85,6 @@ long load_pcm_wav_mono(std::string &filename, vec_type& samples)
 	}
 	delete buff;
 
+	sample_rate = header.SampleRate;
 	return samples.size() - initial_size;
 }

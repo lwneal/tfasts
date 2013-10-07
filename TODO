@@ -1,2 +1,1 @@
-Add ./spectrogram input/dir/ output/dir syntax for batching
-Add Mask::Mask(Mask&, pixel_initfn_t);
+Allow input of mp3 files

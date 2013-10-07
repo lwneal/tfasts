@@ -97,7 +97,7 @@ Mask::Mask(string &wav_fn, int fft_size, int fft_step):
 	data(new dlib::array2d<double>)
 {
 	vector<double> audio;
-	load_pcm_wav_mono(wav_fn, audio);
+	load_pcm_wav_mono(wav_fn, audio, sample_rate);
 	real_fft(*data, audio, fft_size, fft_step);
 }
 
@@ -341,4 +341,24 @@ vector<double> Mask::noise_profile(double percent_lowest) const
 	for (int i = 0; i < height; i++)
 		profile_out[i] = sqrt(profile_out[i]) / num_low_frames;
 	return profile_out;
+}
+
+void Mask::band_pass(int hi_pass_hz, int low_pass_hz) {
+	if (sample_rate <= 0) {
+		std::cerr << "No sample rate given for band pass: assuming 16khz" << std::endl;
+		sample_rate = 16000;
+	}
+		
+	if (hi_pass_hz > 0) {
+		int band_pass_px = (hi_pass_hz * height()) / sample_rate;
+		foreach([&](int x, int y) {
+			if (y < band_pass_px) at(x,y) = 0;
+		});
+	}
+	if (low_pass_hz > 0) {
+		int band_pass_px = (low_pass_hz * height()) / sample_rate;
+		foreach([&](int x, int y) {
+			if (y > band_pass_px) at(x,y) = 0;
+		});
+	}
 }

@@ -20,12 +20,6 @@ struct Options {
 	int hi_pass_hz = 1000;
 	string input_path;
 	string output_path;
-	vector<string> input_files() {
-		vector<string> files = get_full_filenames_from_dir(input_path, "");
-		if (files.size() == 0)
-			files.push_back(input_path);
-		return files;
-	}
 	bool good() {
 		return input_path.size() && output_path.size() 
 			&& fft_width > 0 && fft_step > 0
@@ -73,17 +67,14 @@ int main(int argc, char *argv[]) {
 
 	Mask spec(opt.input_path, opt.fft_width, opt.fft_step);
 
-	int band_pass_px = (opt.hi_pass_hz * spec.height()) / 16000;
-	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
-		return y < band_pass_px ? 0 : spec(x,y);
-	});
+	spec.band_pass(opt.hi_pass_hz);
 
 	spec = spec.whitening_filter();
 
 	spec = spec.norm_to_max();
 
-	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
-		return sqrt(spec(x,y));
+	spec.foreach([&](int x, int y) {
+		spec(x,y) = sqrt(spec(x,y));
 	});
 
 	Image img(spec);

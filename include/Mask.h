@@ -22,6 +22,7 @@ class Grid;
 //	each element (or 'pixel') represents audio amplitude.
 class Mask {
 	mask_data_t data;
+	int sample_rate = -1;
 
 	void foreach_worker(dlib::rectangle rect, pixel_fn_t fn) const;
 	void initialize_worker(int start, int end, pixel_initfn_t fn);
@@ -81,6 +82,9 @@ public:
 	Mask norm_to_max() const {
 		return div_by(get_max());
 	}
+
+	// Zeros pixels above/below the given frequencies
+	void band_pass(int hi_pass_hz, int low_pass_hz=-1);
 
 	// Set mean value to avg
 	Mask norm_to_mean(double avg) const {
