@@ -22,6 +22,7 @@ void Mask::foreach_worker(rectangle rect, pixel_fn_t fn) const {
 	for (int yrow = rect.top(); yrow < rect.bottom(); yrow++) {
 		for (int xcol = rect.left(); xcol < rect.right(); xcol++) {
 			fn(xcol,yrow);
+			assert(at(xcol, yrow) == at(xcol, yrow));
 		}
 	}
 }
@@ -30,6 +31,7 @@ void Mask::initialize_worker(int start, int end, pixel_initfn_t fn) {
 	for (int yrow = start; yrow < end; yrow++) {
 		for (int xcol = 0; xcol < width(); xcol++) {
 			at(xcol,yrow) = fn(xcol,yrow);
+			assert(at(xcol, yrow) == at(xcol, yrow));
 		}
 	}
 }

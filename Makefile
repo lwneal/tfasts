@@ -37,7 +37,7 @@ bin/filter: src/filter.cpp Mask.o pRandomForest.o Image.o
 source.o: include/dlib/all/source.cpp
 	${CC} ${CFLAGS} -DDLIB_NO_GUI_SUPPORT -I include -c include/dlib/all/source.cpp
 
-Mask.o: include/Mask.h src/Mask.cpp source.o Grid.o
+Mask.o: include/Mask.h src/Mask.cpp source.o Grid.o include/Features.h include/Utility.h
 	${CC} ${CFLAGS} -I include -c src/Mask.cpp
 
 Grid.o: include/Grid.h src/Grid.cpp source.o

@@ -22,7 +22,7 @@ struct Options {
 	string model_path;
 	string output_path;
 	bool good() {
-		return model_path.size() & input_path.size() && output_path.size() 
+		return model_path.size() && input_path.size() && output_path.size()
 			&& fft_width > 0 && fft_step > 0
 			&& hi_pass_hz >= 0;
 	}
