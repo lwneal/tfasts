@@ -1,5 +1,6 @@
-#include "pRandomForest.h"
 #include "Mask.h"
+#include "Image.h"
+#include "pRandomForest.h"
 
 #include "dlib/cmd_line_parser.h"
 #include "dlib/image_io.h"
@@ -13,6 +14,12 @@ typedef dlib::cmd_line_parser<char>::check_1a_c ArgParser;
 typedef dlib::array2d<dlib::rgb_pixel> ImageRGB;
 typedef dlib::rgb_pixel Pixel;
 
+struct options {
+	int fft_width = 512;
+	int fft_step = 256;
+	int high_pass_hz = 1000;
+};
+
 void spectrogram_parse_args(ArgParser &parser, int argc, char *argv[]) {
 	parser.add_option("h", "Display this help message");
 	parser.add_option("i", "An input .wav audio file", 1);
@@ -20,8 +27,9 @@ void spectrogram_parse_args(ArgParser &parser, int argc, char *argv[]) {
 	parser.parse(argc, argv);
 
 	if (parser.option("h") || !parser.option("o")) {
-		cout << "TFASTS spectrogram usage:" << endl;
+		cout << "spectrogram:" << endl;
 		cout << "\tspectrogram -i input_audio.wav -o output_img.bmp" << endl;
+		parser.print_options();
 		exit(1);
 	}
 }
@@ -46,22 +54,25 @@ int main(int argc, char *argv[]) {
 
 	int fft_width = 512;
 	int fft_step = 256;
-	int band_pass_px = 12;
+	int high_pass_hz = 1000;
 
-	Mask spec(fn_in, 512, 256);
+	Mask spec(fn_in, fft_width, fft_step);
 
+	int band_pass_px = (high_pass_hz * spec.height()) / 16000;
 	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
 		return y < band_pass_px ? 0 : spec(x,y);
 	});
 
 	spec = spec.whitening_filter();
 
-	spec = spec.div_by(spec.get_max());
+	spec = spec.norm_to_max();
 
 	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
 		return sqrt(spec(x,y));
 	});
 
-	save_img(spec, fn_out);
+	Image img(spec);
+	cout << fn_out << " " << img.width() << "," << img.height() << endl;
+	img.save(fn_out);
 	return 0;
 }
