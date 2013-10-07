@@ -1,10 +1,14 @@
+#include "pRandomForest.h"
+#include "Mask.h"
+
+#include "dlib/cmd_line_parser.h"
+
 #include <string>
 #include <iostream>
 
-#include "pRandomForest.h"
-#include <Mask.h>
-
 using namespace std;
+
+typedef dlib::cmd_line_parser<char>::check_1a_c ArgParser;
 
 
 pRandomForest makeTree() {
@@ -17,11 +21,29 @@ pRandomForest makeTree() {
   return *rf;
 }
 
+void spectrogram_parse_args(ArgParser &parser, int argc, char *argv[]) {
+	parser.add_option("h", "Display this help message");
+	parser.add_option("i", "An input .wav audio file", 1);
+	parser.add_option("o", "Filename for output .bmp spectrogram");
+	parser.parse(argc, argv);
+
+	if (parser.option("h") || !parser.option("o")) {
+		cout << "TFASTS spectrogram usage:" << endl;
+		cout << "\tspectrogram -i input_audio.wav -o output_img.bmp" << endl;
+		exit(1);
+	}
+}
 
 int main(int argc, char *argv[]) {
+	ArgParser args;
+	spectrogram_parse_args(args, argc, argv);
 
-  string msg("hello, world!");
-  cout << msg << endl;
+	string fn_in = args.option("i").argument();
+	string fn_out = args.option("o").argument();
 
-  return 0;
+	Mask spec(fn_in);
+
+	cout << "Saving image size " << spec.width() << "," << spec.height() << " to " << fn_out << endl;
+
+	return 0;
 }
