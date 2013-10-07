@@ -10,7 +10,6 @@ using namespace std;
 
 typedef dlib::cmd_line_parser<char>::check_1a_c ArgParser;
 
-
 pRandomForest makeTree() {
   int num_trees = 10;
   int num_classes = 2;
