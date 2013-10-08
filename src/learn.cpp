@@ -76,22 +76,28 @@ int main(int argc, char *argv[]) {
 	vector<pExample> training;
 
 	for (int i = 0; i < files_in.size(); i++) {
-		cout << "Scanning " << i << "/" << files_in.size() << " " << files_in[i] << endl;
+		cout << "Scanning " << i+1 << "/" << files_in.size() << " " << files_in[i] << endl;
 		Mask spec(files_in[i], opt.fft_width, opt.fft_step);
 		spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
 
-		// TODO: Load a binary mask, or bootstrap one with dumb segmentation
-		Grid segmentation(spec.width(), spec.height(), [&](int x, int y) {
-			return rand() % 2;
-		});
+		// Apply a dumb segmentation and use it as labels to train
+		Mask bootstrap = spec.gaussian_blur(10.0);
+		bootstrap = bootstrap.norm_to_mean(1.0);
+		bootstrap.foreach([&](int x, int y) {
+			bootstrap.at(x,y) = bootstrap.at(x,y) > 1.5;
+		}, 1);
+		if (bootstrap.empty())
+			continue;
 
+		bootstrap = bootstrap.norm_to_max();
+		
 		for (int j = 0; j < examples_per_file; j++) {
 			int x = rand() % spec.width();
 			int y = rand() % spec.height();
 
-			cout << "Getting example at coord " << x << "," << y << endl;
 			vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
-			pExample example(feature, segmentation.at(x,y));
+			int label = bootstrap.at(x,y) > 0;
+			pExample example(feature, label);
 			training.push_back(example);
 		}
 	}

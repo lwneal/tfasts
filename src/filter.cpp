@@ -72,12 +72,19 @@ Options learn_parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	Options opt = learn_parse_args(argc, argv);
 
+	cout << "Loading Random Forest" << endl;
 	pRandomForest rf;
 	rf.load(opt.model_path);
 
+	cout << "Generating spectrogram" << endl;
+
 	Mask spec(opt.input_path, opt.fft_width, opt.fft_step);
 
+	cout << "Processing spectrogram" << endl;
+
 	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
+
+	cout << "Applying RF scores" << endl;
 
 	Mask scores(spec.width(), spec.height(), [&](int x, int y) {
 		vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
@@ -85,7 +92,9 @@ int main(int argc, char *argv[]) {
 		return score;
 	});
 
-	// blur scores?
+	cout << "Magic complete! Applying spectrogram attenuation mask" << endl;
+
+	// TODO: Blur, as in crazy_filter
 	
 	scores.attenuate_wav(opt.input_path, opt.output_path);
 	

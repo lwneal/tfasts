@@ -5,21 +5,23 @@ TFASTS is a set of command-line tools for manipulating audio in the spectrogram 
 
 You can use TFASTS to remove some noise from audio recordings, given examples of the type of sound you want to hear.
 
-Basic usage:
+Example Usage
 
-        learn clearly_recorded_audio_files/african_swallows/ african_swallow.rf
+Suppose you have a big set of audio recordings of African Swallow mating calls. TFASTS can process these calls to learn what African Swallows sound like.
 
-Scans your collection of audio recordings of African Swallow mating calls, and constructs a statistical model of their sound.
+        learn clearly_recorded_audio_files/african_swallows/ african_swallows.rf
 
-        filter -m african_swallow.rf new_noisy_input.wav filtered_output.wav
+This scans your collection of African Swallow recordings, and constructs a statistical model of their sound. 
+Now, you might have a new audio recording that contains an African Swallow amidst noise. 
+You can use TFASTS to filter out the noise, like so:
 
-Given a new, noisy input audio file, uses the statistical model to remove everything that doesn't sound like an African Swallow.
+        filter -m african_swallows.rf new_noisy_input.wav filtered_output.wav
 
-The quality of results depends on how many recordings of swallows you have, how much non-Swallow noise exists in the source recordings, and the parameters you use while constructing the model.
+If all goes well, the output file will contain less noise, and more African Swallow.
+The quality of results depends on how many recordings of swallows you have, how much non-Swallow noise exists in the source recordings, and many command-line parameters.
 
 
 Other Tools:
 
 spectrogram input.wav output.bmp
 	Converts audio files into viewable images.
-

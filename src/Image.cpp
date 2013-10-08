@@ -1,5 +1,5 @@
 #include "Image.h"
-
+#include "Utility.h"
 #include "Mask.h"
 #include "Grid.h"
 
@@ -20,8 +20,20 @@ Image::Image(std::string filename):
 Image::Image(const Mask &mask):
 	data(new dlib::array2d<dlib::rgb_pixel>(mask.height(), mask.width()))
 {
+	double maxval = mask.get_max();
+	assert(maxval > 0);
 	mask.foreach([&](int x, int y) {
-		float val = 255.0 * mask.at(x, y);
+		float val = 255.0 * mask.at(x, y) / maxval;
+		(*data)[y][x] = dlib::rgb_pixel(val, val, val);
+	});
+}
+
+// Turn grid into image
+Image::Image(const Grid &grid):
+	data(new dlib::array2d<dlib::rgb_pixel>(grid.height(), grid.width()))
+{
+	grid.foreach([&](int x, int y) {
+		float val = grid.at(x, y) * 100;
 		(*data)[y][x] = dlib::rgb_pixel(val, val, val);
 	});
 }

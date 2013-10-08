@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
 	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
 
 	Image img(spec);
-	cout << opt.input_path << " " << img.width() << "," << img.height() << endl;
 	img.save(opt.output_path);
 	return 0;
 }

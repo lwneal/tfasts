@@ -28,6 +28,14 @@ class Mask {
 	void initialize_worker(int start, int end, pixel_initfn_t fn);
 
 public:
+	std::string toString() const {
+		std::stringstream ss;
+		ss << "Mask " << width() << "x" << height()
+		<< " min " << get_min() << " max " << get_max()
+		<< " mean " << get_mean() << " variance " << get_variance();
+		return ss.str();
+	}
+
 	// Function to load a mask from a previously-output probability mask BMP
 	Mask(std::string &bmp_in);
 	
@@ -67,11 +75,20 @@ public:
 	double& at(int xcol, int yrow);
 	double at(int xcol, int yrow) const;
 
+	// True if all values are 0
+	bool empty() const;
+
 	// Return the maximum valued pixel in the mask
 	double get_max() const;
 
+	// Return the min valued pixel in the mask
+	double get_min() const;
+
 	// Returns the mean of all pixels in the mask
 	double get_mean() const;
+
+	// Returns the variance of all pixels in the mask
+	double get_variance() const;
 
 	// Divide each pixel by the given value
 	Mask div_by(double div) const;

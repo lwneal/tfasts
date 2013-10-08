@@ -5,8 +5,8 @@
 #include <math.h>
 #include <iostream>
 
-#include "wav_in/wav_in.h"
-#include "wav_in/wav_out.h"
+#include "wav_in.h"
+#include "wav_out.h"
  
 using namespace std;
 

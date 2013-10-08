@@ -33,6 +33,9 @@ public:
 	// Turn mask into image
 	Image(const Mask &mask);
 
+	// Turn Grid into image
+	Image(const Grid &grid);
+
 	int width() const {   return data->nc();   }
 	int height() const {  return data->nr();   }
 	long size() const {  return width()*height(); }

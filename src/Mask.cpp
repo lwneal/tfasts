@@ -133,6 +133,9 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 		&& wav_out.rfind(".WAV") == string::npos)
 		wav_out = wav_out.append(".wav");
 	
+	using namespace std;
+	
+	cout << "Loading audio..." << endl;
 	vector<double> audio;
 	int sample_rate;
 	load_pcm_wav_mono(wav_in, audio, sample_rate);
@@ -142,8 +145,11 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 	Mask imag(width(), height());
 	int fft_size = 1024;
 	int fft_step = 128;
+	cout << "Applying FFT" << endl;
 	complex_fft(*(real.data), *(imag.data), audio, fft_size, fft_step);
+	cout << "Finished FFT have real max " << real.width() << "," << real.height() << endl;
 	
+	cout << "TODO: Actually attenuate the real/imag based on current values" << endl;
 
 	// Output at 16-bit mono PCM
 	pWavData outWav(sample_rate, 16, 1);
@@ -187,19 +193,28 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 			outWav.samples_[ outWav.samples_.size() - fft_size + m ] += realOut[m];
 		}
 	}
-	
 	int clampCount = 0;
 	for (int i = 0; i < outWav.samples_.size(); i++)
 		clampCount += clamp_val(outWav.samples_[i], -1.0f, 1.0f);
 	if (clampCount)
 		std::cout << "Clamped " << clampCount << " samples to [-1,1]" << std::endl;
 	
+	cout << "Writing WAV to " << wav_out << endl;
 	outWav.writeWAV(wav_out);
 	
 	delete[] realOut;
 	delete[] imagOut;
 	delete[] realIn;
 	delete[] imagIn;
+}
+
+bool Mask::empty() const {
+	bool empty = true;
+	foreach([&](int x, int y) {
+		if (at(x,y) > 0)
+			empty = false;
+	});
+	return empty;
 }
 
 // We use a dlib mutex to protect the 'maxval' var
@@ -215,13 +230,35 @@ double Mask::get_max() const {
 	return maxval;
 }
 
-// Here we sum each row on its own thread
-double Mask::get_mean() const {
-	double mean = 0;
+double Mask::get_min() const {
+	double minval = 0;
+	dlib::mutex min_mutex;
 	foreach([&](int x, int y) {
-		mean += at(x,y);
+		if (at(x,y) < minval) {
+			dlib::auto_mutex lock(min_mutex);
+			minval = at(x,y);
+		}
 	});
-	return mean / (height()*width());
+	return minval;
+}
+
+double Mask::get_mean() const {
+	double total = 0;
+	foreach([&](int x, int y) {
+		total += at(x,y);
+	}, 1);
+	return total / (height()*width());
+}
+
+double Mask::get_variance() const {
+	double mean = get_mean();
+	double sigma = 0;
+	foreach([&](int x, int y) {
+		double d = at(x,y) - mean;
+		sigma += d*d;
+	}, 1);
+	sigma /= width() * height();
+	return sigma;
 }
 
 Mask Mask::div_by(double div) const {

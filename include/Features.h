@@ -13,16 +13,12 @@ using std::vector;
 
 Mask preprocess_spec_icassp(Mask &spec, int hi_pass_hz) {
         
-	std::cout << "whitening " << std::endl;
 	spec = spec.whitening_filter();
 
-	std::cout << "band pass" << std::endl;
 	spec.band_pass(hi_pass_hz);
 
-	std::cout << "norm to  " << spec.get_max() << std::endl;
 	spec = spec.norm_to_max();
 
-	std::cout << "sqrt" << std::endl;
 	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
 		return sqrt(spec.at(x,y));
 	});

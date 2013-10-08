@@ -5,25 +5,15 @@ CFLAGS=-g
 
 all: bin/spectrogram bin/learn bin/filter
 
-test: test_spectrogram test_learn test_filter
-
-test_spectrogram: all
+test: all
 	@rm -rf test/*
-	@bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test/test_1.bmp \
+	bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test/test_1.bmp \
 	&& bin/spectrogram hja_birds/wavs/PC9_20090512_070000_0090.wav test/test_2.bmp \
 	&& bin/spectrogram hja_birds/wavs/PC5_20090703_100000_0010.wav test/test_3.bmp -w 1024 -s 128 -p 50\
-	&& echo "Passed tests: spectrogram"\
- 	|| echo "Failed tests: spectrogram"
-
-test_learn:
-	@bin/learn three_files/ -o test/test_model.rf \
-	&& echo "Passed tests: learn"\
- 	|| echo "Failed tests: learn"
-
-test_filter:
-	@bin/filter hja_birds/wavs/PC13_20090512_070000_0060.wav test/filtered.wav -m test/test_model.rf \
-	&& echo "Passed tests: filter"\
- 	|| echo "Failed tests: filter"
+	&& bin/learn demo/ -o test/test_model.rf \
+	&& bin/filter hja_birds/wavs/PC13_20090512_070000_0060.wav test/filtered.wav -m test/test_model.rf \
+	&& echo "Passed tests"\
+ 	|| echo "Failed tests"
 
 bin/spectrogram: src/spectrogram.cpp Mask.o pRandomForest.o Image.o
 	${CC} ${CFLAGS} *.o src/spectrogram.cpp -I include -o bin/spectrogram
@@ -46,7 +36,7 @@ Grid.o: include/Grid.h src/Grid.cpp source.o
 Image.o: include/Image.h src/Image.cpp Mask.o Grid.o source.o
 	${CC} ${CFLAGS} -I include -c src/Image.cpp
 
-FFT.o: src/FFT.cpp include/FFT.h pWavData.o
+FFT.o: wav_in.o wav_out.o src/FFT.cpp include/FFT.h
 	${CC} ${CFLAGS} -I include -c src/FFT.cpp
 
 pRFDecisionTree.o: include/pRFDecisionTree.h src/pRFDecisionTree.cpp
@@ -55,7 +45,8 @@ pRFDecisionTree.o: include/pRFDecisionTree.h src/pRFDecisionTree.cpp
 pRandomForest.o: include/pRandomForest.h src/pRandomForest.cpp pRFDecisionTree.o FFT.o
 	${CC} ${CFLAGS} -I include -c src/pRandomForest.cpp
 
-pWavData.o: include/pWavData.h include/wav_in.h include/wav_out.h
+wav_in.o: wav_out.o
+wav_out.o: include/pWavData.h include/wav_in.h include/wav_out.h include/wav_def.h include/f_err.h include/f_ptch.h src/wav_in.cpp src/wav_out.cpp
 	${CC} ${CFLAGS} -I include -c src/wav_in.cpp src/wav_out.cpp
 
 clean:
