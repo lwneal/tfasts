@@ -11,7 +11,8 @@ test: all
 	&& bin/spectrogram hja_birds/wavs/PC9_20090512_070000_0090.wav test/test_2.bmp \
 	&& bin/spectrogram hja_birds/wavs/PC5_20090703_100000_0010.wav test/test_3.bmp -w 1024 -s 128 -p 50\
 	&& bin/learn demo/ -o test/test_model.rf \
-	&& bin/filter hja_birds/wavs/PC13_20090512_070000_0060.wav test/filtered.wav -m test/test_model.rf \
+	&& cp hja_birds/wavs/PC1_20090703_080000_0000.wav test/before.wav \
+	&& bin/filter hja_birds/wavs/PC1_20090703_080000_0000.wav test/after.wav -m test/test_model.rf \
 	&& echo "Passed tests"\
  	|| echo "Failed tests"
 

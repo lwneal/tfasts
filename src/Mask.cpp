@@ -10,10 +10,7 @@
 #include "dlib/threads.h"
 #include "dlib/image_io.h"
 
-using std::pair;
-using std::vector;
-using std::string;
-using std::function;
+using namespace std;
 
 using dlib::rectangle;
 using dlib::thread_function;
@@ -133,23 +130,25 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 		&& wav_out.rfind(".WAV") == string::npos)
 		wav_out = wav_out.append(".wav");
 	
-	using namespace std;
-	
-	cout << "Loading audio..." << endl;
 	vector<double> audio;
 	int sample_rate;
 	load_pcm_wav_mono(wav_in, audio, sample_rate);
-	std::cout << "Loaded " << audio.size() << " samples at " << sample_rate << "hz" << std::endl;
+	cerr << "WAV Loaded " << audio.size() << " samples at " << sample_rate << "hz" << std::endl;
+
+	double original_volume = 0;
+	for (int i = 0; i < audio.size(); i++)
+		original_volume += abs(audio[i]);
+	original_volume /= audio.size();
 
 	Mask real(width(), height());
 	Mask imag(width(), height());
 	int fft_size = 1024;
 	int fft_step = 128;
-	cout << "Applying FFT" << endl;
+	cerr << "Applying FFT" << endl;
 	complex_fft(*(real.data), *(imag.data), audio, fft_size, fft_step);
-	cout << "Finished FFT have real max " << real.width() << "," << real.height() << endl;
+	cerr << "Finished FFT have real max " << real.width() << "," << real.height() << endl;
 	
-	cout << "TODO: Actually attenuate the real/imag based on current values" << endl;
+	cerr << "TODO: Actually attenuate the real/imag based on current values" << endl;
 
 	// Output at 16-bit mono PCM
 	pWavData outWav(sample_rate, 16, 1);
@@ -161,7 +160,7 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 	double* imagOut = new double[fft_size];
 		
 	// For each frame of audio,
-	for (int i = 0; i < width(); i++) {
+	for (int i = 0; i < real.width(); i++) {
 		// In order to apply the inverse FFT, we need fft_size coefficients
 		//  (so we get a full frame of audio back). To do this, we mirror
 		//  the left half of the signal to the right, taking the complex
@@ -193,13 +192,22 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 			outWav.samples_[ outWav.samples_.size() - fft_size + m ] += realOut[m];
 		}
 	}
-	int clampCount = 0;
-	for (int i = 0; i < outWav.samples_.size(); i++)
-		clampCount += clamp_val(outWav.samples_[i], -1.0f, 1.0f);
-	if (clampCount)
-		std::cout << "Clamped " << clampCount << " samples to [-1,1]" << std::endl;
-	
-	cout << "Writing WAV to " << wav_out << endl;
+
+	double transformed_volume = 0;
+	for (int i = 0; i < outWav.samples_.size(); i++) 
+		transformed_volume += abs(outWav.samples_[i]);
+	transformed_volume /= outWav.samples_.size();
+
+	if (transformed_volume == 0) {
+		cerr << "Warning: Empty audio output" << endl;
+	} else {
+		double adjustment = original_volume / transformed_volume;
+		cerr << "Adjusting volume by factor of " << adjustment << endl;
+		for (int i = 0; i < outWav.samples_.size(); i++)
+			outWav.samples_[i] *= adjustment;
+	}
+
+	cerr << "WAV outputting " << outWav.samples_.size() << " samples to " << wav_out << endl;
 	outWav.writeWAV(wav_out);
 	
 	delete[] realOut;
@@ -460,7 +468,7 @@ vector<double> Mask::noise_profile(double percent_lowest) const
 
 void Mask::band_pass(int hi_pass_hz, int low_pass_hz) {
 	if (sample_rate <= 0) {
-		std::cerr << "No sample rate given for band pass: assuming 16khz" << std::endl;
+		std::cerr << "Warning: No sample rate given for band pass: assuming 16khz" << std::endl;
 		sample_rate = 16000;
 	}
 		
