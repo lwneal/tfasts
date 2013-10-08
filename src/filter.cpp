@@ -91,10 +91,8 @@ int main(int argc, char *argv[]) {
 		float score = rf.estimateClassProbabilities(feature)[0];
 		return score;
 	});
-
-	cout << "Magic complete! Applying spectrogram attenuation mask" << endl;
-
-	// TODO: Blur, as in crazy_filter
+	
+	scores = scores.gaussian_blur(4).norm_to_mean(1.0);
 	
 	scores.attenuate_wav(opt.input_path, opt.output_path);
 	

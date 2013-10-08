@@ -148,7 +148,20 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 	complex_fft(*(real.data), *(imag.data), audio, fft_size, fft_step);
 	cerr << "Finished FFT have real max " << real.width() << "," << real.height() << endl;
 	
-	cerr << "TODO: Actually attenuate the real/imag based on current values" << endl;
+	cerr << "Applying attenuation from mask " << toString() << endl;
+	cerr << "\tReal: " << real.toString() << endl;
+	cerr << "\tImag " << imag.toString() << endl;
+
+	real.foreach([&](int x, int y) {
+		int u = x * width() / real.width();
+		int v = y * height() / real.height();
+		real.at(x,y) *= at(u,v);
+		imag.at(x,y) *= at(u,v);
+	});
+
+	cerr << "After attenuation" << endl;
+	cerr << "\tReal: " << real.toString() << endl;
+	cerr << "\tImag " << imag.toString() << endl;
 
 	// Output at 16-bit mono PCM
 	pWavData outWav(sample_rate, 16, 1);
@@ -259,14 +272,15 @@ double Mask::get_mean() const {
 }
 
 double Mask::get_variance() const {
-	double mean = get_mean();
-	double sigma = 0;
+	double sum = 0;
+	double sumsqr = 0;
+
 	foreach([&](int x, int y) {
-		double d = at(x,y) - mean;
-		sigma += d*d;
+		double val = at(x,y);
+		sum += val;
+		sumsqr += val*val;
 	}, 1);
-	sigma /= width() * height();
-	return sigma;
+	return (sumsqr - sum*sum) / size();
 }
 
 Mask Mask::div_by(double div) const {
