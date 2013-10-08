@@ -7,12 +7,12 @@ all: bin/spectrogram bin/learn bin/filter
 
 test: all
 	@rm -rf test/*
-	bin/spectrogram -i hja_birds/wavs/PC7_20090704_090000_0040.wav -o test/test_1.bmp \
-	&& bin/spectrogram hja_birds/wavs/PC9_20090512_070000_0090.wav test/test_2.bmp \
-	&& bin/spectrogram hja_birds/wavs/PC5_20090703_100000_0010.wav test/test_3.bmp -w 1024 -s 128 -p 50\
+	bin/spectrogram -i demo/1.wav -o test/test_1.bmp \
+	&& bin/spectrogram demo/2.wav test/test_2.bmp \
+	&& bin/spectrogram demo/3.wav test/test_3.bmp -w 1024 -s 128 -p 50\
 	&& bin/learn demo/ -o test/test_model.rf \
-	&& cp hja_birds/wavs/PC1_20090703_080000_0000.wav test/before.wav \
-	&& bin/filter hja_birds/wavs/PC1_20090703_080000_0000.wav test/after.wav -m test/test_model.rf \
+	&& cp demo/4.wav test/before.wav \
+	&& bin/filter demo/4.wav test/after.wav -m test/test_model.rf \
 	&& echo "Passed tests"\
  	|| echo "Failed tests"
 
