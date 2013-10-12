@@ -19,6 +19,7 @@ struct Options {
 	int fft_width = 512;
 	int fft_step = 256;
 	int hi_pass_hz = 1000;
+	float raise_to;
 	string input_path;
 	string output_path;
 	bool good() {
@@ -36,6 +37,7 @@ Options spectrogram_parse_args(int argc, char *argv[]) {
 	parser.add_option("w", "Integer FFT width (2x the output spectrogram image height). Default 512", 1);
 	parser.add_option("s", "FFT Step (smaller step sizes result in a wider image). Default 256", 1);
 	parser.add_option("p", "High-Pass cutoff in Hz. Default 1000", 1);
+	parser.add_option("r", "Raise to power: default 1. Higher increases overall contrast, lower makes soft regions more visible.", 1);
 	parser.parse(argc, argv);
 
 	Options opts;
@@ -54,6 +56,8 @@ Options spectrogram_parse_args(int argc, char *argv[]) {
 		opts.fft_step = dlib::sa = parser.option("s").argument();
 	if (parser.option("p") && parser.option("p").count() > 0)
 		opts.hi_pass_hz = dlib::sa = parser.option("p").argument();
+	if (parser.option("r") && parser.option("r").count() > 0)
+		opts.raise_to = dlib::sa = parser.option("r").argument();
 		
 	if (!opts.good()) {
 		cout << "\tspectrogram sound.wav output.bmp" << endl;
@@ -69,6 +73,9 @@ int main(int argc, char *argv[]) {
 	Mask spec(opt.input_path, opt.fft_width, opt.fft_step);
 
 	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
+
+	if (opt.raise_to != 1)
+		spec = spec.raise_to(opt.raise_to);
 
 	Image img(spec);
 	img.save(opt.output_path);
