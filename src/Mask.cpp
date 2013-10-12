@@ -222,11 +222,14 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 
 	cerr << "WAV outputting " << outWav.samples_.size() << " samples to " << wav_out << endl;
 	outWav.writeWAV(wav_out);
+	cerr << "Finished outputting WAV" << endl;
 	
+	cerr << "Start deleting temp buffers" << endl;
 	delete[] realOut;
 	delete[] imagOut;
 	delete[] realIn;
 	delete[] imagIn;
+	cerr << "Finished deleting temp buffers" << endl;
 }
 
 bool Mask::empty() const {

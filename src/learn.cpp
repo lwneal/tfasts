@@ -32,7 +32,7 @@ struct Options {
 Options learn_parse_args(int argc, char *argv[]) {
 	dlib::cmd_line_parser<char>::check_1a_c parser;
 	parser.add_option("h", "Display this help message");
-	parser.add_option("i", "An input .wav audio file", 1);
+	parser.add_option("i", "An input directory containing .wav audio", 1);
 	parser.add_option("o", "Filename for output .rf model file",1);
 	parser.add_option("w", "Integer FFT width (2x the output spectrogram image height). Default 512", 1);
 	parser.add_option("s", "FFT Step (smaller step sizes result in a wider image). Default 256", 1);

@@ -10,6 +10,7 @@ test: all
 	bin/spectrogram -i demo/1.wav -o test/test_1.bmp \
 	&& bin/spectrogram demo/2.wav test/test_2.bmp \
 	&& bin/spectrogram demo/3.wav test/test_3.bmp -w 1024 -s 128 -p 50\
+	&& bin/filter -i demo_wavs/PC3_20090523_190000_0070.wav -o test/PC3_20090523_190000_0070.filtered.wav -l demo_labels/PC3_20090523_190000_0070.bmp \
 	&& bin/learn demo/ -o test/test_model.rf \
 	&& cp demo/4.wav test/before.wav \
 	&& bin/filter demo/4.wav test/after.wav -m test/test_model.rf \
