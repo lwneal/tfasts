@@ -7,6 +7,7 @@
 #include "dlib/matrix.h"
 
 #include <iostream>
+#include <climits>
 
 using std::pair;
 using std::vector;

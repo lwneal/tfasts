@@ -37,7 +37,7 @@ TFASTS can still help you! Suppose all you have are noisy recordings, containing
 
         noisy_recordings/african_swallows/example_1.wav
         noisy_recordings/african_swallows/example_2.wav
-	...
+        ...
 
 You can teach TFASTS which sounds in your audio recordings are African Swallows, and which sounds are undesired noise.
 
@@ -45,7 +45,7 @@ First, use the Spectrogram tool to generate viewable BMP-format representations 
 
         spectrogram -i noisy_recordings/african_swallows/example_1.wav -o noisy_spectrograms/example_1.bmp
         spectrogram -i noisy_recordings/african_swallows/example_2.wav -o noisy_spectrograms/example_2.bmp
-	...
+        ...
 
 Spectrograms look like this:
 
@@ -70,18 +70,18 @@ You can now use the 'filter' tool as above to remove noise from recordings.
 ### What Do I Need To Build It?
 Linux requirements:
 
-	sudo apt-get install software-properties-common
+        sudo apt-get install software-properties-common
         sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
-	wget -O llvm-snapshot.gpg.key http://llvm.org/apt/llvm-snapshot.gpg.key
-	sudo apt-key add llvm-snapshot.gpg.key
-	sudo apt-get update
-	sudo apt-get install clang-3.4 clang-3.4-doc libclang-common-3.4-dev libclang-3.4-dev libclang1-3.4 libclang1-3.4-dbg libllvm-3.4-ocaml-dev libllvm3.4 libllvm3.4-dbg lldb-3.4 llvm-3.4 llvm-3.4-dev llvm-3.4-doc llvm-3.4-examples llvm-3.4-runtime clang-modernize-3.4 clang-format-3.4
+        wget -O llvm-snapshot.gpg.key http://llvm.org/apt/llvm-snapshot.gpg.key
+        sudo apt-key add llvm-snapshot.gpg.key
+        sudo apt-get update
+        sudo apt-get install clang-3.4 clang-3.4-doc libclang-common-3.4-dev libclang-3.4-dev libclang1-3.4 libclang1-3.4-dbg libllvm-3.4-ocaml-dev libllvm3.4 libllvm3.4-dbg lldb-3.4 llvm-3.4 llvm-3.4-dev llvm-3.4-doc llvm-3.4-examples llvm-3.4-runtime clang-modernize-3.4 clang-format-3.4
 
 OSX requirements: XCode 4.3+ with Command-Line Tools installed.
 
 Windows requirements: MSVC++ 2010 or higher. Configuration is left as an excercise for the reader.
 
 ### How Do I Build It?
-	git clone http://github.com/lwneal/tfasts
-	cd tfasts
+        git clone http://github.com/lwneal/tfasts
+        cd tfasts
         make
