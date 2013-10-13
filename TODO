@@ -1,1 +1,8 @@
+Add learn options: 
+	number of trees
+	class balance
+	number of training examples
 Allow input of mp3 files
+Allow input of .jpg files
+Output .mp3
+Output .jpg
