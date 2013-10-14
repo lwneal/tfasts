@@ -21,6 +21,7 @@ Image::Image(const Mask &mask):
 	data(new dlib::array2d<dlib::rgb_pixel>(mask.height(), mask.width()))
 {
 	double maxval = mask.get_max();
+	std::cout << "Generating image from mask " << mask.toString() << std::endl;
 	assert(maxval > 0);
 	mask.foreach([&](int x, int y) {
 		float val = 255.0 * mask.at(x, y) / maxval;

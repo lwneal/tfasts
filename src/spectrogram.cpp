@@ -19,7 +19,7 @@ struct Options {
 	int fft_width = 512;
 	int fft_step = 256;
 	int hi_pass_hz = 1000;
-	float raise_to;
+	float raise_to = 0;
 	string input_path;
 	string output_path;
 	bool good() {
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
 	spec = preprocess_spec_icassp(spec, opt.hi_pass_hz);
 
-	if (opt.raise_to != 1)
+	if (opt.raise_to != 0)
 		spec = spec.raise_to(opt.raise_to);
 
 	Image img(spec);

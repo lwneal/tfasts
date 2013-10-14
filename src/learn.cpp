@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
 	int N_pos = N * opt.class_balance;
 	int N_neg = N - N_pos;
 
-	int examples_per_file = double(N) / files_in.size();
+	int examples_per_file = double(N + 1) / files_in.size();
 	long num_positive = 0;
 	long num_negative = 0;
 

@@ -145,9 +145,7 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 	real.sample_rate = imag.sample_rate = sample_rate;
 	int fft_size = 1024;
 	int fft_step = 128;
-	cerr << "Applying FFT" << endl;
 	complex_fft(*(real.data), *(imag.data), audio, fft_size, fft_step);
-	cerr << "Finished FFT have real max " << real.width() << "," << real.height() << endl;
 	
 	cerr << "Applying attenuation from mask " << toString() << endl;
 	cerr << "\tReal: " << real.toString() << endl;
@@ -221,16 +219,12 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 			outWav.samples_[i] *= adjustment;
 	}
 
-	cerr << "WAV outputting " << outWav.samples_.size() << " samples to " << wav_out << endl;
 	outWav.writeWAV(wav_out);
-	cerr << "Finished outputting WAV" << endl;
 	
-	cerr << "Start deleting temp buffers" << endl;
 	delete[] realOut;
 	delete[] imagOut;
 	delete[] realIn;
 	delete[] imagIn;
-	cerr << "Finished deleting temp buffers" << endl;
 }
 
 bool Mask::empty() const {
@@ -307,6 +301,9 @@ Mask Mask::raise_to(double pow) const {
 
 Mask Mask::whitening_filter(double quietest_frames) const {
 	vector<double> noise = noise_profile(quietest_frames);
+	for (int i = 0; i < noise.size(); i++)
+		if (noise[i] == 0) 
+			noise[i] = 1;
 	return Mask(width(), height(), [&](int x, int y) {
 		return at(x,y) / noise[y];
 	});
