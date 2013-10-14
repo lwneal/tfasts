@@ -94,6 +94,8 @@ int main(int argc, char *argv[]) {
 		Mask label(opt.label_path);
 
 		cout << "Loaded label mask " << label.toString();
+		if (opt.out_label_path.size())
+			Image(label).save(opt.out_label_path);
 
 		label.attenuate_wav(opt.input_path, opt.output_path);
 
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
 
 		Mask scores(spec.width(), spec.height(), [&](int x, int y) {
 			vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
-			float score = rf.estimateClassProbabilities(feature)[0];
+			float score = rf.estimateClassProbabilities(feature)[1];
 			return score;
 		});
 	
