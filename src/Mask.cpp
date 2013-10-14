@@ -142,6 +142,7 @@ void Mask::attenuate_wav(string &wav_in, string &wav_out) const {
 
 	Mask real(width(), height());
 	Mask imag(width(), height());
+	real.sample_rate = imag.sample_rate = sample_rate;
 	int fft_size = 1024;
 	int fft_step = 128;
 	cerr << "Applying FFT" << endl;

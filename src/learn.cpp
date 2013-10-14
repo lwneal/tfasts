@@ -18,6 +18,8 @@ struct Options {
 	int fft_step = 256;
 	int hi_pass_hz = 300;
 	int k_examples = 10;
+	int num_trees = 10;
+	float class_balance = 0;
 	string input_path;
 	string output_path;
 	string label_path;
@@ -44,6 +46,8 @@ Options learn_parse_args(int argc, char *argv[]) {
 	parser.add_option("s", "FFT Step (smaller step sizes result in a wider image). Default 256", 1);
 	parser.add_option("p", "High-Pass cutoff in Hz. Default 300", 1);
 	parser.add_option("e", "Number of examples to train from (in thousands). More examples increases accuracy. Default 10", 1);
+	parser.add_option("n", "Number of trees in the Random Forest classifier. For best (slowest) results, use 40. Default 10.", 1);
+	parser.add_option("c", "Class balance. Ex: if set to 0.6, forces training set to contain 60\% positive and 40\% negative examples.", 1);
 	parser.parse(argc, argv);
 
 	Options opts;
@@ -66,6 +70,10 @@ Options learn_parse_args(int argc, char *argv[]) {
 		opts.hi_pass_hz = dlib::sa = parser.option("p").argument();
 	if (parser.option("e") && parser.option("e").count() > 0)
 		opts.k_examples = dlib::sa = parser.option("e").argument();
+	if (parser.option("n") && parser.option("n").count() > 0)
+		opts.num_trees = dlib::sa = parser.option("n").argument();
+	if (parser.option("c") && parser.option("c").count() > 0)
+		opts.class_balance = dlib::sa = parser.option("c").argument();
 		
 	if (!opts.good()) {
 		cout << "\tlearn input_dir/ output.rf" << endl;
@@ -108,8 +116,15 @@ int main(int argc, char *argv[]) {
 
 
 	vector<pExample> training;
-	int i = 0, N = opt.k_examples * 1000;
+	int i = 0;
+	int N = opt.k_examples * 1000;
+	int N_pos = N * opt.class_balance;
+	int N_neg = N - N_pos;
+
 	int examples_per_file = double(N) / files_in.size();
+	long num_positive = 0;
+	long num_negative = 0;
+
 	while (true) {
 		cout << "Scanning file " << i+1 << "/" << files_in.size() << "...";
 
@@ -123,24 +138,40 @@ int main(int argc, char *argv[]) {
 			int x = rand() % spec.width();
 			int y = rand() % spec.height();
 
-			vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
 			int label = labels.at(x,y) > 0;
+			if (opt.class_balance > 0 && 
+				((label && num_positive >= N_pos) || 
+				(!label && num_negative >= N_neg))) 
+			{
+				continue;
+			} 
+
+			vector<float> feature(extract_feature_perpixel_icassp(spec, x, y));
 			pExample example(feature, label);
 			training.push_back(example);
+			if (label > 0)
+				num_positive++;
+			else
+				num_negative++;
 
-			if (training.size() >= N) break;
+			if (training.size() >= N) { break; }
 		}
 
-		double pct = 100 * double(training.size()) / N;
-		cout << "\tprogress " << pct << "\%" << endl;
+		if (opt.class_balance > 0) {
+			double pct_pos = 100 * double(num_positive) / N_pos;
+			double pct_neg = 100 * double(num_negative) / N_neg;
+			cout << "\tprogress " << pct_pos << "\% pos, " << pct_neg << "\% neg" << endl;
+		} else {
+			double pct = 100 * double(training.size()) / N;
+			cout << "\tprogress " << pct << "\%" << endl;
+		}
+
 		i = (i + 1) % files_in.size();
 		if (training.size() >= N) break;
+
 	}
 
-	long num_positive = 0;
-	for (int i = 0; i < training.size(); i++)
-		num_positive += (training[i].classLabel_ > 0);
-	cout << "Learned " << num_positive << " positive / " << (training.size() - num_positive) << " examples " << endl;
+	cout << "Learned " << training.size() << " examples, " << num_positive << " positive / " << (training.size() - num_positive) << endl;
 
 	int num_classes = 2;
 	int feature_dim = training[0].featureVector_.size();

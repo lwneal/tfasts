@@ -12,9 +12,10 @@
 using std::vector;
 
 Mask preprocess_spec_icassp(Mask &spec, int hi_pass_hz) {
-        
+	int sample_rate = spec.sample_rate;
 	spec = spec.whitening_filter();
 
+	spec.sample_rate = sample_rate;
 	spec.band_pass(hi_pass_hz);
 
 	spec = spec.norm_to_max();
@@ -22,6 +23,7 @@ Mask preprocess_spec_icassp(Mask &spec, int hi_pass_hz) {
 	spec = Mask(spec.width(), spec.height(), [&](int x, int y) {
 		return sqrt(spec.at(x,y));
 	});
+	spec.sample_rate = sample_rate;
 	return spec;
 }
 

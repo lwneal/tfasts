@@ -53,4 +53,4 @@ wav_out.o: include/pWavData.h include/wav_in.h include/wav_out.h include/wav_def
 	${CC} ${CFLAGS} -I include -c src/wav_in.cpp src/wav_out.cpp
 
 clean:
-	rm -rf *.o bin/* test_*.bmp
+	rm -rf *.o bin/* test/*
