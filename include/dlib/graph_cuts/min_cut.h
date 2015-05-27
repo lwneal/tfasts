@@ -1,7 +1,7 @@
 // Copyright (C) 2012  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_MIN_CuT_H__
-#define DLIB_MIN_CuT_H__
+#ifndef DLIB_MIN_CuT_Hh_
+#define DLIB_MIN_CuT_Hh_
 
 #include "min_cut_abstract.h"
 #include "../matrix.h"
@@ -233,7 +233,6 @@ namespace dlib
             const unsigned long sink
         ) const
         {
-            typedef typename flow_graph::edge_type edge_type;
             typedef typename flow_graph::out_edge_iterator out_edge_iterator;
             typedef typename flow_graph::in_edge_iterator in_edge_iterator;
 
@@ -365,8 +364,6 @@ namespace dlib
         ) const
         {
             typedef typename flow_graph::edge_type edge_type;
-            typedef typename flow_graph::out_edge_iterator out_edge_iterator;
-            typedef typename flow_graph::in_edge_iterator in_edge_iterator;
 
             // used to indicate "no parent"
             const unsigned long nil = g.number_of_nodes();
@@ -458,7 +455,6 @@ namespace dlib
                     - returns false
         !*/
         {
-            typedef typename flow_graph::edge_type edge_type;
             typedef typename flow_graph::out_edge_iterator out_edge_iterator;
             typedef typename flow_graph::in_edge_iterator in_edge_iterator;
 
@@ -571,5 +567,5 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-#endif // DLIB_MIN_CuT_H__
+#endif // DLIB_MIN_CuT_Hh_
 

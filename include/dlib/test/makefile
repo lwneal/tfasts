@@ -2,7 +2,7 @@
 # on Debian Linux using the gcc compiler.
 
 # this is the name of the output executable
-TARGET = test 
+TARGET = dtest 
 
 # these are the compile time flags passed to gcc
 CFLAGS = -ggdb  -DDEBUG -DDLIB_NO_GUI_SUPPORT  -I ../..  -Wall
@@ -59,6 +59,9 @@ SRC += ekm_and_lisf.cpp
 SRC += empirical_kernel_map.cpp
 SRC += entropy_coder.cpp
 SRC += entropy_encoder_model.cpp
+SRC += face.cpp
+SRC += fft.cpp
+SRC += fhog.cpp
 SRC += filtering.cpp
 SRC += find_max_factor_graph_nmplp.cpp
 SRC += find_max_factor_graph_viterbi.cpp
@@ -77,8 +80,10 @@ SRC += is_same_object.cpp
 SRC += kcentroid.cpp
 SRC += kernel_matrix.cpp
 SRC += kmeans.cpp
+SRC += learning_to_track.cpp
 SRC += least_squares.cpp
 SRC += linear_manifold_regularizer.cpp
+SRC += lspi.cpp
 SRC += lz77_buffer.cpp
 SRC += map.cpp
 SRC += matrix2.cpp
@@ -95,6 +100,7 @@ SRC += md5.cpp
 SRC += member_function_pointer.cpp
 SRC += metaprogramming.cpp
 SRC += multithreaded_object.cpp
+SRC += numerical_integration.cpp
 SRC += object_detector.cpp
 SRC += oca.cpp
 SRC += one_vs_all_trainer.cpp
@@ -118,6 +124,7 @@ SRC += sammon.cpp
 SRC += scan_image.cpp
 SRC += sequence.cpp
 SRC += sequence_labeler.cpp
+SRC += sequence_segmenter.cpp
 SRC += serialize.cpp
 SRC += set.cpp
 SRC += sldf.cpp
@@ -138,6 +145,7 @@ SRC += svm_c_linear_dcd.cpp
 SRC += svm.cpp
 SRC += svm_multiclass_linear.cpp
 SRC += svm_struct.cpp
+SRC += svr_linear_trainer.cpp
 SRC += symmetric_matrix_cache.cpp
 SRC += thread_pool.cpp
 SRC += threads.cpp

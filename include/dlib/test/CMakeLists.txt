@@ -3,7 +3,7 @@
 # information about it at http://www.cmake.org
 #
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8.4)
 
 # This variable contains a list of all the tests we are building
 # into the regression test suite.
@@ -44,6 +44,9 @@ set (tests
    entropy_coder.cpp
    entropy_encoder_model.cpp
    example_args.cpp
+   face.cpp
+   fft.cpp
+   fhog.cpp
    filtering.cpp
    find_max_factor_graph_nmplp.cpp
    find_max_factor_graph_viterbi.cpp
@@ -62,8 +65,10 @@ set (tests
    kcentroid.cpp
    kernel_matrix.cpp
    kmeans.cpp
+   learning_to_track.cpp
    least_squares.cpp
    linear_manifold_regularizer.cpp
+   lspi.cpp
    lz77_buffer.cpp
    map.cpp
    matrix2.cpp
@@ -80,6 +85,7 @@ set (tests
    member_function_pointer.cpp
    metaprogramming.cpp
    multithreaded_object.cpp
+   numerical_integration.cpp
    object_detector.cpp
    oca.cpp
    one_vs_all_trainer.cpp
@@ -103,6 +109,7 @@ set (tests
    scan_image.cpp
    sequence.cpp
    sequence_labeler.cpp
+   sequence_segmenter.cpp
    serialize.cpp
    set.cpp
    sldf.cpp
@@ -123,24 +130,25 @@ set (tests
    svm.cpp
    svm_multiclass_linear.cpp
    svm_struct.cpp
+   svr_linear_trainer.cpp
    symmetric_matrix_cache.cpp
    thread_pool.cpp
    threads.cpp
    timer.cpp
    tokenizer.cpp
    trust_region.cpp
-   vectorstream.cpp
    tuple.cpp
    type_safe_union.cpp
+   vectorstream.cpp
    )
 
-# create a variable called target_name and set it to the string "test"
-set (target_name test)
+# create a variable called target_name and set it to the string "dtest"
+set (target_name dtest)
 
 PROJECT(${target_name})
 
 # add all the cpp files we want to compile to this list.  This tells
-# cmake that they are part of our target (which is the executable named test)
+# cmake that they are part of our target (which is the executable named dtest)
 ADD_EXECUTABLE(${target_name} main.cpp tester.cpp ${tests})
 
 # Turn on all warnings when using gcc.
@@ -156,6 +164,7 @@ TARGET_LINK_LIBRARIES(${target_name} dlib )
 
 if (NOT DLIB_NO_GUI_SUPPORT)
    add_subdirectory(gui)
+   add_subdirectory(examples)
 endif()
 
 

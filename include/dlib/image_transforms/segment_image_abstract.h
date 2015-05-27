@@ -1,7 +1,11 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_SEGMENT_ImAGE_ABSTRACT_H__
-#ifdef DLIB_SEGMENT_ImAGE_ABSTRACT_H__
+#undef DLIB_SEGMENT_ImAGE_ABSTRACT_Hh_
+#ifdef DLIB_SEGMENT_ImAGE_ABSTRACT_Hh_
+
+#include <vector>
+#include "../matrix.h"
+#include "../image_processing/generic_image.h"
 
 namespace dlib
 {
@@ -20,11 +24,13 @@ namespace dlib
     );
     /*!
         requires
-            - in_image_type  == an implementation of array2d/array2d_kernel_abstract.h
-            - out_image_type == an implementation of array2d/array2d_kernel_abstract.h
-            - in_image_type::type  == Any pixel type with a pixel_traits specialization or a
-              dlib matrix object representing a row or column vector.
-            - out_image_type::type == unsigned integer type 
+            - in_image_type == an image object that implements the interface defined in
+              dlib/image_processing/generic_image.h 
+            - out_image_type == an image object that implements the interface defined in
+              dlib/image_processing/generic_image.h 
+            - in_image_type can contain any pixel type with a pixel_traits specialization
+              or a dlib matrix object representing a row or column vector.
+            - out_image_type must contain an unsigned integer pixel type.
             - is_same_object(in_img, out_img) == false
         ensures
             - Attempts to segment in_img into regions which have some visual consistency to
@@ -46,9 +52,75 @@ namespace dlib
     !*/
 
 // ----------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename in_image_type,
+        typename EXP
+        >
+    void find_candidate_object_locations (
+        const in_image_type& in_img,
+        std::vector<rectangle>& rects,
+        const matrix_exp<EXP>& kvals = linspace(50, 200, 3),
+        const unsigned long min_size = 20,
+        const unsigned long max_merging_iterations = 50
+    );
+    /*!
+        requires
+            - in_image_type == an image object that implements the interface defined in
+              dlib/image_processing/generic_image.h 
+            - is_vector(kvals) == true
+            - kvals.size() > 0
+        ensures
+            - This function takes an input image and generates a set of candidate
+              rectangles which are expected to bound any objects in the image.  It does
+              this by running a version of the segment_image() routine on the image and
+              then reports rectangles containing each of the segments as well as rectangles
+              containing unions of adjacent segments.  The basic idea is described in the
+              paper: 
+                  Segmentation as Selective Search for Object Recognition by Koen E. A. van de Sande, et al.
+              Note that this function deviates from what is described in the paper slightly. 
+              See the code for details.
+            - The basic segmentation is performed kvals.size() times, each time with the k
+              parameter (see segment_image() and the Felzenszwalb paper for details on k)
+              set to a different value from kvals.   
+            - When doing the basic segmentations prior to any box merging, we discard all
+              rectangles that have an area < min_size.  Therefore, all outputs and
+              subsequent merged rectangles are built out of rectangles that contain at
+              least min_size pixels.  Note that setting min_size to a smaller value than
+              you might otherwise be interested in using can be useful since it allows a
+              larger number of possible merged boxes to be created.
+            - There are max_merging_iterations rounds of neighboring blob merging.
+              Therefore, this parameter has some effect on the number of output rectangles
+              you get, with larger values of the parameter giving more output rectangles.
+            - This function appends the output rectangles into #rects.  This means that any
+              rectangles in rects before this function was called will still be in there
+              after it terminates.  Note further that #rects will not contain any duplicate
+              rectangles.  That is, for all valid i and j where i != j it will be true
+              that:
+                - #rects[i] != rects[j]
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    template <
+        typename alloc
+        >
+    void remove_duplicates (
+        std::vector<rectangle,alloc>& rects
+    );
+    /*!
+        ensures
+            - This function finds any duplicate rectangles in rects and removes the extra
+              instances.  This way, the result is that rects contains only unique rectangle
+              instances.
+    !*/
+
+// ----------------------------------------------------------------------------------------
 
 }
 
-#endif // DLIB_SEGMENT_ImAGE_ABSTRACT_H__
+#endif // DLIB_SEGMENT_ImAGE_ABSTRACT_Hh_
 
 

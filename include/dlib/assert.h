@@ -26,6 +26,20 @@
 #define BOOST_DO_JOIN2( X, Y ) X##Y
 #endif
 
+// figure out if the compiler has static_assert. 
+#if defined(__clang__) 
+#   if __has_feature(cxx_static_assert)
+#       define DLIB_HAS_STATIC_ASSERT
+#   endif
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2)) && defined(__GXX_EXPERIMENTAL_CXX0X__) 
+#   define DLIB_HAS_STATIC_ASSERT
+#elif defined(_MSC_VER) && _MSC_VER >= 1600
+#   define DLIB_HAS_STATIC_ASSERT
+#elif defined(__INTEL_COMPILER) && defined(BOOST_INTEL_STDCXX0X)
+#   define DLIB_HAS_STATIC_ASSERT
+#endif
+
+
 // -----------------------------
 
 namespace dlib
@@ -37,15 +51,36 @@ namespace dlib
     template <typename T> struct assert_are_same_type<T,T> {enum{value=1};};
     template <typename T, typename U> struct assert_are_not_same_type {enum{value=1}; };
     template <typename T> struct assert_are_not_same_type<T,T> {};
+
+    template <typename T, typename U> struct assert_types_match {enum{value=0};};
+    template <typename T> struct assert_types_match<T,T> {enum{value=1};};
 }
-#define COMPILE_TIME_ASSERT(expression) \
-        typedef char BOOST_JOIN(DLIB_CTA, __LINE__)[::dlib::compile_time_assert<(bool)(expression)>::value] 
 
-#define ASSERT_ARE_SAME_TYPE(type1, type2) \
-        typedef char BOOST_JOIN(DLIB_AAST, __LINE__)[::dlib::assert_are_same_type<type1,type2>::value] 
 
-#define ASSERT_ARE_NOT_SAME_TYPE(type1, type2) \
-        typedef char BOOST_JOIN(DLIB_AANST, __LINE__)[::dlib::assert_are_not_same_type<type1,type2>::value] 
+// gcc 4.8 will warn about unused typedefs.  But we use typedefs in some of the compile
+// time assert macros so we need to make it not complain about them "not being used".
+#ifdef __GNUC__
+#define DLIB_NO_WARN_UNUSED __attribute__ ((unused))
+#else
+#define DLIB_NO_WARN_UNUSED 
+#endif
+
+// Use the newer static_assert if it's available since it produces much more readable error
+// messages.
+#ifdef DLIB_HAS_STATIC_ASSERT
+    #define COMPILE_TIME_ASSERT(expression) static_assert(expression, "Failed assertion")
+    #define ASSERT_ARE_SAME_TYPE(type1, type2) static_assert(::dlib::assert_types_match<type1,type2>::value, "These types should be the same but aren't.")
+    #define ASSERT_ARE_NOT_SAME_TYPE(type1, type2) static_assert(!::dlib::assert_types_match<type1,type2>::value, "These types should NOT be the same.")
+#else
+    #define COMPILE_TIME_ASSERT(expression) \
+        DLIB_NO_WARN_UNUSED typedef char BOOST_JOIN(DLIB_CTA, __LINE__)[::dlib::compile_time_assert<(bool)(expression)>::value] 
+
+    #define ASSERT_ARE_SAME_TYPE(type1, type2) \
+        DLIB_NO_WARN_UNUSED typedef char BOOST_JOIN(DLIB_AAST, __LINE__)[::dlib::assert_are_same_type<type1,type2>::value] 
+
+    #define ASSERT_ARE_NOT_SAME_TYPE(type1, type2) \
+        DLIB_NO_WARN_UNUSED typedef char BOOST_JOIN(DLIB_AANST, __LINE__)[::dlib::assert_are_not_same_type<type1,type2>::value] 
+#endif
 
 // -----------------------------
 
@@ -72,7 +107,7 @@ namespace dlib
 #  else
 #    define DLIB_FUNCTION_NAME "unknown function" 
 #  endif
-#elif _MSC_VER
+#elif defined(_MSC_VER)
 #define DLIB_FUNCTION_NAME __FUNCSIG__
 #else
 #define DLIB_FUNCTION_NAME "unknown function" 
@@ -82,13 +117,13 @@ namespace dlib
     {if ( !(_exp) )                                                         \
     {                                                                       \
         dlib_assert_breakpoint();                                           \
-        std::ostringstream dlib__out;                                       \
-        dlib__out << "\n\nError detected at line " << __LINE__ << ".\n";    \
-        dlib__out << "Error detected in file " << __FILE__ << ".\n";      \
-        dlib__out << "Error detected in function " << DLIB_FUNCTION_NAME << ".\n\n";      \
-        dlib__out << "Failing expression was " << #_exp << ".\n";           \
-        dlib__out << std::boolalpha << _message << "\n";                    \
-        throw dlib::fatal_error(dlib::EBROKEN_ASSERT,dlib__out.str());      \
+        std::ostringstream dlib_o_out;                                       \
+        dlib_o_out << "\n\nError detected at line " << __LINE__ << ".\n";    \
+        dlib_o_out << "Error detected in file " << __FILE__ << ".\n";      \
+        dlib_o_out << "Error detected in function " << DLIB_FUNCTION_NAME << ".\n\n";      \
+        dlib_o_out << "Failing expression was " << #_exp << ".\n";           \
+        dlib_o_out << std::boolalpha << _message << "\n";                    \
+        throw dlib::fatal_error(dlib::EBROKEN_ASSERT,dlib_o_out.str());      \
     }}                                                                      
 
 
@@ -96,7 +131,7 @@ namespace dlib
     #define DLIB_ASSERT(_exp,_message) DLIB_CASSERT(_exp,_message)
     #define DLIB_IF_ASSERT(exp) exp
 #else
-    #define DLIB_ASSERT(_exp,_message)
+    #define DLIB_ASSERT(_exp,_message) {}
     #define DLIB_IF_ASSERT(exp) 
 #endif
 
@@ -117,7 +152,7 @@ namespace dlib
     // Use the fact that in C++03 you can't put non-PODs into a union.
 #define DLIB_ASSERT_HAS_STANDARD_LAYOUT(type)   \
     union  BOOST_JOIN(DAHSL_,__LINE__) { type TYPE_NOT_STANDARD_LAYOUT; };  \
-    typedef char BOOST_JOIN(DAHSL2_,__LINE__)[sizeof(BOOST_JOIN(DAHSL_,__LINE__))]; 
+    DLIB_NO_WARN_UNUSED typedef char BOOST_JOIN(DAHSL2_,__LINE__)[sizeof(BOOST_JOIN(DAHSL_,__LINE__))]; 
 
 // ----------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------

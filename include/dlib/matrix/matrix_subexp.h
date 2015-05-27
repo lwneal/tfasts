@@ -64,12 +64,12 @@ namespace dlib
     struct op_subm 
     {
         op_subm (
-            const M& m_,
-            const long& r__,
-            const long& c__,
-            const long& nr__,
-            const long& nc__
-        ) : m(m_), r_(r__), c_(c__), nr_(nr__), nc_(nc__) { }
+            const M& m_x,
+            const long& r_x,
+            const long& c_x,
+            const long& nr_x,
+            const long& nc_x
+        ) : m(m_x), r_(r_x), c_(c_x), nr_(nr_x), nc_(nc_x) { }
 
         const M& m;
         const long r_;
@@ -186,9 +186,9 @@ namespace dlib
         const matrix_exp<EXPc>& cols
     )
     {
-        // the rows and cols matrices must contain elements of type long
-        COMPILE_TIME_ASSERT((is_same_type<typename EXPr::type,long>::value == true));
-        COMPILE_TIME_ASSERT((is_same_type<typename EXPc::type,long>::value == true));
+        // the rows and cols matrices must contain integer elements 
+        COMPILE_TIME_ASSERT(std::numeric_limits<typename EXPr::type>::is_integer);
+        COMPILE_TIME_ASSERT(std::numeric_limits<typename EXPc::type>::is_integer);
 
         DLIB_ASSERT(0 <= min(rows) && max(rows) < m.nr() && 0 <= min(cols) && max(cols) < m.nc() &&
                     (rows.nr() == 1 || rows.nc() == 1) && (cols.nr() == 1 || cols.nc() == 1), 
@@ -347,8 +347,8 @@ namespace dlib
         const matrix_exp<EXP2>& rows
     )
     {
-        // the rows matrix must contain elements of type long
-        COMPILE_TIME_ASSERT((is_same_type<typename EXP2::type,long>::value == true));
+        // the rows matrix must contain integer elements 
+        COMPILE_TIME_ASSERT(std::numeric_limits<typename EXP2::type>::is_integer);
 
         DLIB_ASSERT(0 <= min(rows) && max(rows) < m.nr() && (rows.nr() == 1 || rows.nc() == 1), 
             "\tconst matrix_exp rowm(const matrix_exp& m, const matrix_exp& rows)"
@@ -502,8 +502,8 @@ namespace dlib
         const matrix_exp<EXP2>& cols
     )
     {
-        // the cols matrix must contain elements of type long
-        COMPILE_TIME_ASSERT((is_same_type<typename EXP2::type,long>::value == true));
+        // the rows matrix must contain integer elements 
+        COMPILE_TIME_ASSERT(std::numeric_limits<typename EXP2::type>::is_integer);
 
         DLIB_ASSERT(0 <= min(cols) && max(cols) < m.nc() && (cols.nr() == 1 || cols.nc() == 1), 
             "\tconst matrix_exp colm(const matrix_exp& m, const matrix_exp& cols)"
@@ -533,15 +533,18 @@ namespace dlib
 
         assignable_sub_matrix(
             matrix<T,NR,NC,mm,l>& m_,
-            const rectangle& rect_
-        ) : m(m_), rect(rect_) {}
+            long top_,
+            long left_,
+            long height_,
+            long width_
+        ) : m(m_), left(left_), top(top_), width(width_), height(height_) {}
 
         T& operator() (
             long r,
             long c
         )
         {
-            return m(r+rect.top(),c+rect.left());
+            return m(r+top,c+left);
         }
 
         const T& operator() (
@@ -549,24 +552,24 @@ namespace dlib
             long c
         ) const
         {
-            return m(r+rect.top(),c+rect.left());
+            return m(r+top,c+left);
         }
 
-        long nr() const { return rect.height(); }
-        long nc() const { return rect.width(); }
+        long nr() const { return height; }
+        long nc() const { return width; }
 
         template <typename EXP>
         assignable_sub_matrix& operator= (
             const matrix_exp<EXP>& exp
         ) 
         {
-            DLIB_ASSERT( exp.nr() == (long)rect.height() && exp.nc() == (long)rect.width(),
+            DLIB_ASSERT( exp.nr() == height && exp.nc() == width,
                 "\tassignable_matrix_expression set_subm()"
                 << "\n\tYou have tried to assign to this object using a matrix that isn't the right size"
                 << "\n\texp.nr() (source matrix): " << exp.nr()
                 << "\n\texp.nc() (source matrix): " << exp.nc() 
-                << "\n\trect.width() (target matrix):   " << rect.width()
-                << "\n\trect.height() (target matrix):  " << rect.height()
+                << "\n\twidth (target matrix):    " << width
+                << "\n\theight (target matrix):   " << height
                 );
 
             if (exp.destructively_aliases(m) == false)
@@ -588,18 +591,18 @@ namespace dlib
             const matrix_exp<EXP>& exp
         ) 
         {
-            DLIB_ASSERT( exp.nr() == (long)rect.height() && exp.nc() == (long)rect.width(),
+            DLIB_ASSERT( exp.nr() == height && exp.nc() == width,
                 "\tassignable_matrix_expression set_subm()"
                 << "\n\tYou have tried to assign to this object using a matrix that isn't the right size"
                 << "\n\texp.nr() (source matrix): " << exp.nr()
                 << "\n\texp.nc() (source matrix): " << exp.nc() 
-                << "\n\trect.width() (target matrix):   " << rect.width()
-                << "\n\trect.height() (target matrix):  " << rect.height()
+                << "\n\twidth (target matrix):    " << width
+                << "\n\theight (target matrix):   " << height
                 );
 
             if (exp.destructively_aliases(m) == false)
             {
-                matrix_assign(*this, subm(m,rect)+exp); 
+                matrix_assign(*this, subm(m,top,left,height,width)+exp); 
             }
             else
             {
@@ -616,18 +619,18 @@ namespace dlib
             const matrix_exp<EXP>& exp
         ) 
         {
-            DLIB_ASSERT( exp.nr() == (long)rect.height() && exp.nc() == (long)rect.width(),
+            DLIB_ASSERT( exp.nr() == height && exp.nc() == width,
                 "\tassignable_matrix_expression set_subm()"
                 << "\n\tYou have tried to assign to this object using a matrix that isn't the right size"
                 << "\n\texp.nr() (source matrix): " << exp.nr()
                 << "\n\texp.nc() (source matrix): " << exp.nc() 
-                << "\n\trect.width() (target matrix):   " << rect.width()
-                << "\n\trect.height() (target matrix):  " << rect.height()
+                << "\n\twidth (target matrix):    " << width
+                << "\n\theight (target matrix):   " << height
                 );
 
             if (exp.destructively_aliases(m) == false)
             {
-                matrix_assign(*this, subm(m,rect)-exp); 
+                matrix_assign(*this, subm(m,top,left,height,width)-exp); 
             }
             else
             {
@@ -643,9 +646,11 @@ namespace dlib
             const T& value
         )
         {
-            for (long r = rect.top(); r <= rect.bottom(); ++r)
+            const long bottom = top+height-1;
+            const long right = left+width-1;
+            for (long r = top; r <= bottom; ++r)
             {
-                for (long c = rect.left(); c <= rect.right(); ++c)
+                for (long c = left; c <= right; ++c)
                 {
                     m(r,c) = value;
                 }
@@ -658,9 +663,11 @@ namespace dlib
             const T& value
         )
         {
-            for (long r = rect.top(); r <= rect.bottom(); ++r)
+            const long bottom = top+height-1;
+            const long right = left+width-1;
+            for (long r = top; r <= bottom; ++r)
             {
-                for (long c = rect.left(); c <= rect.right(); ++c)
+                for (long c = left; c <= right; ++c)
                 {
                     m(r,c) += value;
                 }
@@ -673,9 +680,11 @@ namespace dlib
             const T& value
         )
         {
-            for (long r = rect.top(); r <= rect.bottom(); ++r)
+            const long bottom = top+height-1;
+            const long right = left+width-1;
+            for (long r = top; r <= bottom; ++r)
             {
-                for (long c = rect.left(); c <= rect.right(); ++c)
+                for (long c = left; c <= right; ++c)
                 {
                     m(r,c) -= value;
                 }
@@ -686,7 +695,7 @@ namespace dlib
 
 
         matrix<T,NR,NC,mm,l>& m;
-        const rectangle rect;
+        const long left, top, width, height;
     };
 
 
@@ -708,7 +717,7 @@ namespace dlib
             );
 
 
-        return assignable_sub_matrix<T,NR,NC,mm,l>(m,rect);
+        return assignable_sub_matrix<T,NR,NC,mm,l>(m,rect.top(), rect.left(), rect.height(), rect.width());
     }
 
 
@@ -732,7 +741,7 @@ namespace dlib
                     << "\n\tnc:     " << nc 
         );
 
-        return assignable_sub_matrix<T,NR,NC,mm,l>(m,rectangle(c,r, c+nc-1, r+nr-1));
+        return assignable_sub_matrix<T,NR,NC,mm,l>(m,r,c, nr, nc);
     }
 
 // ----------------------------------------------------------------------------------------

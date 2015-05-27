@@ -1,7 +1,7 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_IMAGE_DAtASET_METADATA_H__
-#define DLIB_IMAGE_DAtASET_METADATA_H__
+#ifndef DLIB_IMAGE_DAtASET_METADATA_Hh_
+#define DLIB_IMAGE_DAtASET_METADATA_Hh_
 
 #include <string>
 #include <vector>
@@ -27,11 +27,25 @@ namespace dlib
                     The main variable of interest is rect.  It gives the location of 
                     the box.  All the other variables are optional.
             !*/
+
             box(
             ) : 
                 difficult(false),
                 truncated(false),
-                occluded(false)
+                occluded(false),
+                ignore(false),
+                angle(0)
+            {}
+
+            box (
+                const rectangle& rect_
+            ) : 
+                rect(rect_), 
+                difficult(false),
+                truncated(false),
+                occluded(false),
+                ignore(false),
+                angle(0)
             {}
 
             rectangle rect;
@@ -43,6 +57,14 @@ namespace dlib
             bool difficult;
             bool truncated;
             bool occluded;
+            bool ignore;
+
+            // The angle of the object in radians.  Positive values indicate that the
+            // object at the center of the box is rotated clockwise by angle radians.  A
+            // value of 0 would indicate that the object is in its "standard" upright pose.
+            // Therefore, to make the object appear upright we would have to rotate the
+            // image counter-clockwise by angle radians.
+            double angle; 
 
             bool has_label() const { return label.size() != 0; }
             /*!
@@ -126,5 +148,5 @@ namespace dlib
 #include "image_dataset_metadata.cpp"
 #endif
 
-#endif // DLIB_IMAGE_DAtASET_METADATA_H__
+#endif // DLIB_IMAGE_DAtASET_METADATA_Hh_
 

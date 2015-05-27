@@ -1,7 +1,7 @@
 // Copyright (C) 2012  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_H__
-#ifdef DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_H__
+#undef DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_Hh_
+#ifdef DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_Hh_
 
 #include "../algs.h"
 #include "../optimization.h"
@@ -47,7 +47,7 @@ namespace dlib
                 - this object isn't verbose
                 - #get_epsilon() == 0.1
                 - #get_num_threads() == 2
-                - #get_max_cache_size() == 40
+                - #get_max_cache_size() == 5
                 - #get_loss_on_positive_class() == 1.0
                 - #get_loss_on_negative_class() == 1.0
         !*/
@@ -261,5 +261,5 @@ namespace dlib
 
 }
 
-#endif // DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_H__
+#endif // DLIB_STRUCTURAL_GRAPH_LABELING_tRAINER_ABSTRACT_Hh_
 

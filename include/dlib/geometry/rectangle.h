@@ -9,6 +9,7 @@
 #include <iostream>
 #include "../serialize.h"
 #include "vector.h"
+#include "../image_processing/generic_image.h"
 
 namespace dlib
 {
@@ -363,6 +364,19 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    inline rectangle intersect (
+        const rectangle& a,
+        const rectangle& b
+    ) { return a.intersect(b); }
+
+// ----------------------------------------------------------------------------------------
+
+    inline unsigned long area (
+        const rectangle& a
+    ) { return a.area(); }
+
+// ----------------------------------------------------------------------------------------
+
     inline point center (
         const dlib::rectangle& rect
     )
@@ -434,6 +448,86 @@ namespace dlib
             temp.y() = rect.bottom();
 
         return temp;
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    template <typename T, typename U>
+    double distance_to_line (
+        const std::pair<vector<T,2>,vector<T,2> >& line,
+        const vector<U,2>& p
+    )
+    {
+        const vector<double,2> delta = p-line.second;
+        const double along_dist = (line.first-line.second).normalize().dot(delta);
+        return std::sqrt(std::max(0.0,delta.length_squared() - along_dist*along_dist));
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    inline void clip_line_to_rectangle (
+        const rectangle& box,
+        point& p1,
+        point& p2
+    )
+    {
+        // Now clip the line segment so it is contained inside box.
+        if (p1.x() == p2.x())
+        {
+            if (!box.contains(p1))
+                p1.y() = box.top();
+            if (!box.contains(p2))
+                p2.y() = box.bottom();
+        }
+        else if (p1.y() == p2.y())
+        {
+            if (!box.contains(p1))
+                p1.x() = box.left();
+            if (!box.contains(p2))
+                p2.x() = box.right();
+        }
+        else
+        {
+            // We use these relations to find alpha values.  These values tell us
+            // how to generate points intersecting the rectangle boundaries.  We then
+            // test the resulting points for ones that are inside the rectangle and output
+            // those.
+            //box.left()  == alpha1*(p1.x()-p2.x()) + p2.x();
+            //box.right() == alpha2*(p1.x()-p2.x()) + p2.x();
+
+            const point d = p1-p2;
+            double alpha1 = (box.left()  -p2.x())/(double)d.x();
+            double alpha2 = (box.right() -p2.x())/(double)d.x();
+            double alpha3 = (box.top()   -p2.y())/(double)d.y();
+            double alpha4 = (box.bottom()-p2.y())/(double)d.y();
+
+            const point c1 = alpha1*d + p2;
+            const point c2 = alpha2*d + p2;
+            const point c3 = alpha3*d + p2;
+            const point c4 = alpha4*d + p2;
+
+            if (!box.contains(p1))
+                p1 = c1;
+            if (!box.contains(p2))
+                p2 = c2;
+            if (box.contains(c3))
+            {
+                if (!box.contains(p2))
+                    p2 = c3;
+                else if (!box.contains(p1))
+                    p1 = c3;
+            }
+            if (box.contains(c4))
+            {
+                if (!box.contains(p2))
+                    p2 = c4;
+                else if (!box.contains(p1))
+                    p1 = c4;
+            }
+        }
+
+        p1 = nearest_point(box, p1);
+        p2 = nearest_point(box, p2);
     }
 
 // ----------------------------------------------------------------------------------------
@@ -591,6 +685,40 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    inline rectangle set_aspect_ratio (
+        const rectangle& rect,
+        double ratio
+    )
+    {
+        DLIB_ASSERT(ratio > 0,
+            "\t rectangle set_aspect_ratio()"
+            << "\n\t ratio: " << ratio 
+            );
+
+        // aspect ratio is w/h
+
+        // we need to find the rectangle that is nearest to rect in area but
+        // with an aspect ratio of ratio.
+
+        // w/h == ratio
+        // w*h == rect.area()
+
+        if (ratio >= 1)
+        {
+            const long h = static_cast<long>(std::sqrt(rect.area()/ratio) + 0.5);
+            const long w = static_cast<long>(h*ratio + 0.5);
+            return centered_rect(rect, w, h);
+        }
+        else
+        {
+            const long w = static_cast<long>(std::sqrt(rect.area()*ratio) + 0.5);
+            const long h = static_cast<long>(w/ratio + 0.5);
+            return centered_rect(rect, w, h);
+        }
+    }
+
+// ----------------------------------------------------------------------------------------
+
     template <
         typename T 
         >
@@ -598,7 +726,7 @@ namespace dlib
         const T& m
     )
     {
-        return rectangle(0, 0, m.nc()-1, m.nr()-1);
+        return rectangle(0, 0, num_columns(m)-1, num_rows(m)-1);
     }
 
 // ----------------------------------------------------------------------------------------

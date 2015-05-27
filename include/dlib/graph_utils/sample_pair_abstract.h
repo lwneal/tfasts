@@ -1,7 +1,7 @@
 // Copyright (C) 2010  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_SAMPLE_PaIR_ABSTRACT_H__
-#ifdef DLIB_SAMPLE_PaIR_ABSTRACT_H__
+#undef DLIB_SAMPLE_PaIR_ABSTRACT_Hh_
+#ifdef DLIB_SAMPLE_PaIR_ABSTRACT_Hh_
 
 #include <limits>
 #include "../serialize.h"
@@ -115,6 +115,20 @@ namespace dlib
     !*/
 
     template <typename T>
+    bool order_by_descending_distance (
+        const T& a,
+        const T& b
+    ) { return a.distance() > b.distance(); }
+    /*!
+        requires
+            - T is a type with an interface compatible with sample_pair.
+        ensures
+            - provides a total ordering of sample_pair objects that causes pairs with 
+              largest distance to be the first in a sorted list.  This function can be
+              used with std::sort().
+    !*/
+
+    template <typename T>
     bool order_by_distance_and_index (
         const T& a,
         const T& b
@@ -173,6 +187,6 @@ namespace dlib
 
 }
 
-#endif // DLIB_SAMPLE_PaIR_ABSTRACT_H__
+#endif // DLIB_SAMPLE_PaIR_ABSTRACT_Hh_
 
 

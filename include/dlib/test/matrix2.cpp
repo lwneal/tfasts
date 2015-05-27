@@ -226,8 +226,10 @@ namespace
         DLIB_TEST(floor(det(m3)+0.01) == -444);
         DLIB_TEST(floor(det(dm3)+0.01) == -444);
         DLIB_TEST(min(m3) == 1);
+        DLIB_TEST(m3(min_point(m3).y(),min_point(m3).x()) == 1);
         DLIB_TEST(min(dm3) == 1);
         DLIB_TEST(max(m3) == 52);
+        DLIB_TEST(m3(max_point(m3).y(),max_point(m3).x()) == 52);
         DLIB_TEST(max(dm3) == 52);
         DLIB_TEST(sum(m3) == 112);
         DLIB_TEST(sum(dm3) == 112);
@@ -369,6 +371,33 @@ namespace
         DLIB_TEST(dm10 == m10);
         DLIB_TEST_MSG(sum(abs(sigmoid(dm10) -sigmoid(m10))) < 1e-10,sum(abs(sigmoid(dm10) -sigmoid(m10))) );
 
+        {
+            matrix<double,2,1> x, l, u, out;
+            x = 3,4;
+
+            l = 1,1;
+            u = 2,2.2;
+
+            out = 2, 2.2;
+            DLIB_TEST(equal(clamp(x, l, u) , out));
+            out = 3, 2.2;
+            DLIB_TEST(!equal(clamp(x, l, u) , out));
+            out = 2, 4.2;
+            DLIB_TEST(!equal(clamp(x, l, u) , out));
+
+            x = 1.5, 1.5;
+            out = x;
+            DLIB_TEST(equal(clamp(x, l, u) , out));
+
+            x = 0.5, 1.5;
+            out = 1, 1.5;
+            DLIB_TEST(equal(clamp(x, l, u) , out));
+
+            x = 1.5, 0.5;
+            out = 1.5, 1.0;
+            DLIB_TEST(equal(clamp(x, l, u) , out));
+
+        }
 
         matrix<double, 7, 7,MM,column_major_layout> m7;
         matrix<double> dm7(7,7);
@@ -640,7 +669,6 @@ namespace
             const long M = 3;
             const long N = 3;
 
-            typedef matrix<double,0,0> mat;
 
             matrix<double,0,0,default_memory_manager, column_major_layout> a(M,N);  
             for (long r = 0; r < a.nr(); ++r)
@@ -1076,6 +1104,27 @@ namespace
             DLIB_TEST(m == m2);
         }
 
+        {
+            print_spinner();
+            matrix<double,1,1> m1;
+            matrix<double,2,2> m2;
+            matrix<double,3,3> m3;
+            matrix<double,4,4> m4;
+
+            dlib::rand rnd;
+            for (int i = 0; i < 50; ++i)
+            {
+                m1 = randm(1,1,rnd);
+                m2 = randm(2,2,rnd);
+                m3 = randm(3,3,rnd);
+                m4 = randm(4,4,rnd);
+
+                DLIB_TEST(max(abs(m1*inv(m1) - identity_matrix(m1))) < 1e-13);
+                DLIB_TEST(max(abs(m2*inv(m2) - identity_matrix(m2))) < 1e-13);
+                DLIB_TEST(max(abs(m3*inv(m3) - identity_matrix(m3))) < 1e-13);
+                DLIB_TEST(max(abs(m4*inv(m4) - identity_matrix(m4))) < 1e-13);
+            }
+        }
 
     }
 

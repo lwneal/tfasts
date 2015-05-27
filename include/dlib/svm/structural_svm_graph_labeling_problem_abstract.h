@@ -1,7 +1,7 @@
 // Copyright (C) 2012  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_H__
-#ifdef DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_H__
+#undef DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_Hh_
+#ifdef DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_Hh_
 
 #include "../array/array_kernel_abstract.h"
 #include "../graph/graph_kernel_abstract.h"
@@ -53,6 +53,20 @@ namespace dlib
                     - All the edges must contain vectors with the same number of dimensions.
                       (However, edge vectors may differ in dimension from node vectors.)
                     - All vectors have non-zero size.  That is, they have more than 0 dimensions.
+    !*/
+
+    template <
+        typename graph_type
+        >
+    bool is_graph_labeling_problem (
+        const dlib::array<graph_type>& samples,
+        const std::vector<std::vector<bool> >& labels,
+        std::string& reason_for_failure
+    );
+    /*!
+        This function is identical to the above version of is_graph_labeling_problem()
+        except that if it returns false it will populate reason_for_failure with a message
+        describing why the graph is not a valid learning problem.
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -228,7 +242,7 @@ namespace dlib
 
 }
 
-#endif // DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_H__
+#endif // DLIB_STRUCTURAL_SVM_GRAPH_LAbELING_PROBLEM_ABSTRACT_Hh_
 
 
 

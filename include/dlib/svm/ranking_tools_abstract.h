@@ -1,7 +1,7 @@
 // Copyright (C) 2012  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_RANKING_ToOLS_ABSTRACT_H__
-#ifdef DLIB_RANKING_ToOLS_ABSTRACT_H__
+#undef DLIB_RANKING_ToOLS_ABSTRACT_Hh_
+#ifdef DLIB_RANKING_ToOLS_ABSTRACT_Hh_
 
 
 #include "../algs.h"
@@ -181,7 +181,8 @@ namespace dlib
                 - M(1) == the mean average precision of the rankings induced by funct.
                   (Mean average precision is a number in the range 0 to 1.  Moreover, a
                   mean average precision of 1 means everything was correctly predicted
-                  while smaller values indicate worse rankings.)
+                  while smaller values indicate worse rankings.  See the documentation
+                  for average_precision() for details of its computation.)
     !*/
 
 // ----------------------------------------------------------------------------------------
@@ -241,6 +242,6 @@ namespace dlib
 
 }
 
-#endif // DLIB_RANKING_ToOLS_ABSTRACT_H__
+#endif // DLIB_RANKING_ToOLS_ABSTRACT_Hh_
 
 

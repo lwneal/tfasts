@@ -1,7 +1,7 @@
 // Copyright (C) 2013  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_PARALLEL_FoR_H__
-#define DLIB_PARALLEL_FoR_H__ 
+#ifndef DLIB_PARALLEL_FoR_Hh_
+#define DLIB_PARALLEL_FoR_Hh_ 
 
 #include "parallel_for_extension_abstract.h"
 #include "thread_pool_extension.h"
@@ -298,13 +298,20 @@ namespace dlib
                 obj(obj_), funct(funct_), pbar(end-begin)
             {
                 count = 0;
-                pbar.print_status(0);
+                wrote_to_screen = pbar.print_status(0);
+            }
+
+            ~parfor_verbose_helper()
+            {
+                if (wrote_to_screen)
+                    std::cout << std::endl;
             }
 
             mutable long count;
             T& obj;
             void (T::*funct)(long);
             mutable console_progress_indicator pbar;
+            mutable bool wrote_to_screen;
             mutex m;
 
             void operator()(long i) const
@@ -312,7 +319,7 @@ namespace dlib
                 (obj.*funct)(i);
                 {
                     auto_mutex lock(m);
-                    pbar.print_status(++count);
+                    wrote_to_screen = pbar.print_status(++count) || wrote_to_screen;
                 }
             }
 
@@ -326,13 +333,20 @@ namespace dlib
                 obj(obj_), funct(funct_), pbar(end-begin)
             {
                 count = 0;
-                pbar.print_status(0);
+                wrote_to_screen = pbar.print_status(0);
+            }
+
+            ~parfor_verbose_helper3()
+            {
+                if (wrote_to_screen)
+                    std::cout << std::endl;
             }
 
             mutable long count;
             T& obj;
             void (T::*funct)(long,long);
             mutable console_progress_indicator pbar;
+            mutable bool wrote_to_screen;
             mutex m;
 
             void operator()(long begin, long end) const
@@ -341,7 +355,7 @@ namespace dlib
                 {
                     auto_mutex lock(m);
                     count += end-begin;
-                    pbar.print_status(count);
+                    wrote_to_screen = pbar.print_status(count) || wrote_to_screen;
                 }
             }
         };
@@ -353,12 +367,19 @@ namespace dlib
             parfor_verbose_helper2(const T& obj_, long begin, long end) : obj(obj_), pbar(end-begin)
             {
                 count = 0;
-                pbar.print_status(0);
+                wrote_to_screen = pbar.print_status(0);
+            }
+
+            ~parfor_verbose_helper2()
+            {
+                if (wrote_to_screen)
+                    std::cout << std::endl;
             }
 
             mutable long count;
             const T& obj;
             mutable console_progress_indicator pbar;
+            mutable bool wrote_to_screen;
             mutex m;
 
             void operator()(long i) const
@@ -366,7 +387,7 @@ namespace dlib
                 obj(i);
                 {
                     auto_mutex lock(m);
-                    pbar.print_status(++count);
+                    wrote_to_screen = pbar.print_status(++count) || wrote_to_screen;
                 }
             }
 
@@ -376,7 +397,7 @@ namespace dlib
                 {
                     auto_mutex lock(m);
                     count += end-begin;
-                    pbar.print_status(count);
+                    wrote_to_screen = pbar.print_status(count) || wrote_to_screen;
                 }
             }
         };
@@ -580,5 +601,5 @@ namespace dlib
 
 }
 
-#endif // DLIB_PARALLEL_FoR_H__
+#endif // DLIB_PARALLEL_FoR_Hh_
 

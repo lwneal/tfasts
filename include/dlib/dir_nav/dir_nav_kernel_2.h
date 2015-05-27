@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <libgen.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -108,6 +109,9 @@ namespace dlib
 
         inline uint64 size (
         ) const { return state.file_size; }
+
+        operator std::string (
+        ) const { return full_name(); }
 
         bool operator == (
             const file& rhs
@@ -212,6 +216,22 @@ namespace dlib
             queue_of_dirs& dirs
         ) const;
 
+        std::vector<file> get_files (
+        ) const
+        {
+            std::vector<file> temp_vector;
+            get_files(temp_vector);
+            return temp_vector;
+        }
+
+        std::vector<directory> get_dirs (
+        ) const
+        {
+            std::vector<directory> temp_vector;
+            get_dirs(temp_vector);
+            return temp_vector;
+        }
+
         const directory get_parent (
         ) const;
        
@@ -223,6 +243,9 @@ namespace dlib
 
         inline const std::string& full_name (
         ) const { return state.full_name; }
+
+        operator std::string (
+        ) const { return full_name(); }
 
         bool operator == (
             const directory& rhs
@@ -259,6 +282,18 @@ namespace dlib
         !*/
 
     };
+
+// ----------------------------------------------------------------------------------------
+
+    inline std::ostream& operator<< (
+        std::ostream& out,
+        const directory& item
+    ) { out << (std::string)item; return out; }
+
+    inline std::ostream& operator<< (
+        std::ostream& out,
+        const file& item
+    ) { out << (std::string)item; return out; }
 
 // ----------------------------------------------------------------------------------------
 

@@ -31,9 +31,10 @@ namespace dlib
 
         template <typename image_type>
         void load (
-            const image_type& img
+            const image_type& img_
         )
         {
+            const_image_view<image_type> img(img_);
             T pixel;
             int_img.set_size(img.nr(), img.nc());
 
@@ -94,12 +95,24 @@ namespace dlib
             return bottom_right - bottom_left - top_right + top_left;
         }
 
+        void swap(integral_image_generic& item)
+        {
+            int_img.swap(item.int_img);
+        }
+
     private:
 
         array2d<T> int_img;
-
-
     };
+
+
+    template <
+        typename T
+        >
+    void swap (
+        integral_image_generic<T>& a,
+        integral_image_generic<T>& b
+    ) { a.swap(b); }
 
 // ----------------------------------------------------------------------------------------
 

@@ -23,13 +23,14 @@ namespace dlib
         ~png_loader();
 
         bool is_gray() const;
+        bool is_graya() const;
         bool is_rgb() const;
         bool is_rgba() const;
 
         unsigned int bit_depth () const { return bit_depth_; }
 
         template<typename T>
-        void get_image( T& t) const
+        void get_image( T& t_) const
         {
 #ifndef DLIB_PNG_SUPPORT
             /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -41,6 +42,8 @@ namespace dlib
             COMPILE_TIME_ASSERT(sizeof(T) == 0);
 #endif
 
+            typedef typename image_traits<T>::pixel_type pixel_type;
+            image_view<T> t(t_);
             t.set_size( height_, width_ );
 
 
@@ -65,6 +68,52 @@ namespace dlib
                     {
                         dlib::uint16 p = v[m];
                         assign_pixel( t[n][m], p );
+                    }
+                }
+            }
+            else if (is_graya() && bit_depth_ == 8)
+            {
+                for ( unsigned n = 0; n < height_;n++ )
+                {
+                    const unsigned char* v = get_row( n );
+                    for ( unsigned m = 0; m < width_; m++ )
+                    {
+                        unsigned char p = v[m*2];
+                        if (!pixel_traits<pixel_type>::has_alpha)
+                        {
+                            assign_pixel( t[n][m], p );
+                        }
+                        else
+                        {
+                            unsigned char pa = v[m*2+1];
+                            rgb_alpha_pixel pix;
+                            assign_pixel(pix, p);
+                            assign_pixel(pix.alpha, pa);
+                            assign_pixel(t[n][m], pix);
+                        }
+                    }
+                }
+            }
+            else if (is_graya() && bit_depth_ == 16)
+            {
+                for ( unsigned n = 0; n < height_;n++ )
+                {
+                    const uint16* v = (uint16*)get_row( n );
+                    for ( unsigned m = 0; m < width_; m++ )
+                    {
+                        dlib::uint16 p = v[m*2];
+                        if (!pixel_traits<pixel_type>::has_alpha)
+                        {
+                            assign_pixel( t[n][m], p );
+                        }
+                        else
+                        {
+                            dlib::uint16 pa = v[m*2+1];
+                            rgb_alpha_pixel pix;
+                            assign_pixel(pix, p);
+                            assign_pixel(pix.alpha, pa);
+                            assign_pixel(t[n][m], pix);
+                        }
                     }
                 }
             }
@@ -100,7 +149,7 @@ namespace dlib
             }
             else if (is_rgba() && bit_depth_ == 8)
             {
-                if (!pixel_traits<typename T::type>::has_alpha)
+                if (!pixel_traits<pixel_type>::has_alpha)
                     assign_all_pixels(t,0);
 
                 for ( unsigned n = 0; n < height_;n++ )
@@ -119,7 +168,7 @@ namespace dlib
             }
             else if (is_rgba() && bit_depth_ == 16)
             {
-                if (!pixel_traits<typename T::type>::has_alpha)
+                if (!pixel_traits<pixel_type>::has_alpha)
                     assign_all_pixels(t,0);
 
                 for ( unsigned n = 0; n < height_;n++ )

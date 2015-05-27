@@ -4,9 +4,8 @@
 #define DLIB_SERIALIZe_
 
 /*!
-    There are two global functions in the dlib namespace that provide 
-    serialization and deserialization support.  Their signatures and specifications
-    are as follows:
+    There are two global functions in the dlib namespace that provide serialization and
+    deserialization support.  Their signatures and specifications are as follows:
         
         void serialize (
             const serializable_type& item,
@@ -47,6 +46,16 @@
                 - any other exception
         *!/
 
+    For convenience, you can also serialize to a file using this syntax:
+        serialize("your_file.dat") << some_object << another_object;
+
+    That overwrites the contents of your_file.dat with the serialized data from some_object
+    and another_object.  Then to recall the objects from the file you can do:
+        deserialize("your_file.dat") >> some_object >> another_object;
+
+    Finally, you can chain as many objects together using the << and >> operators as you
+    like.
+
 
     This file provides serialization support to the following object types:
         - The C++ base types (NOT including pointer types)
@@ -59,6 +68,7 @@
         - std::complex
         - dlib::uint64
         - dlib::int64
+        - float_details
         - enumerable<T> where T is a serializable type
         - map_pair<D,R> where D and R are both serializable types.
         - C style arrays of serializable types
@@ -75,6 +85,7 @@
         - std::complex
         - dlib::uint64
         - dlib::int64
+        - float_details
         - C style arrays of serializable types
         - Google protocol buffer objects.
 
@@ -112,7 +123,15 @@
             and tells you how many of the following bytes are part of the encoded
             number.
 
+    bool SERIALIZATION FORMAT
+        A bool value is serialized as the single byte character '1' or '0' in ASCII.
+        Where '1' indicates true and '0' indicates false.
 
+    FLOATING POINT SERIALIZATION FORMAT
+        To serialize a floating point value we convert it into a float_details object and
+        then serialize the exponent and mantissa values using dlib's integral serialization
+        format.  Therefore, the output is first the exponent and then the mantissa.  Note that
+        the mantissa is a signed integer (i.e. there is not a separate sign bit).
 !*/
 
 
@@ -121,6 +140,7 @@
 #include <iomanip>
 #include <cstddef>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <complex>
@@ -134,6 +154,8 @@
 #include "unicode.h"
 #include "unicode.h"
 #include "byte_orderer.h"
+#include "float_details.h"
+#include "smart_pointers/shared_ptr.h"
 
 namespace dlib
 {
@@ -455,30 +477,43 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    inline void serialize(
+        const float_details& item,
+        std::ostream& out
+    )
+    {
+        serialize(item.mantissa, out);
+        serialize(item.exponent, out);
+    }
+
+    inline void deserialize(
+        float_details& item,
+        std::istream& in 
+    )
+    {
+        deserialize(item.mantissa, in);
+        deserialize(item.exponent, in);
+    }
+
+// ----------------------------------------------------------------------------------------
+
     template <typename T>
-    inline bool serialize_floating_point (
+    inline void serialize_floating_point (
         const T& item,
         std::ostream& out
     )
     { 
-        std::ios::fmtflags oldflags = out.flags();  
-        out.flags(); 
-        std::streamsize ss = out.precision(35); 
-        if (item == std::numeric_limits<T>::infinity())
-            out << "inf ";
-        else if (item == -std::numeric_limits<T>::infinity())
-            out << "ninf ";
-        else if (item < std::numeric_limits<T>::infinity())
-            out << item << ' '; 
-        else
-            out << "NaN ";
-        out.flags(oldflags); 
-        out.precision(ss); 
-        return (!out);
+        try
+        {
+            float_details temp = item;
+            serialize(temp, out);
+        }
+        catch (serialization_error& e)
+        { throw serialization_error(e.info + "\n   while serializing a floating point number."); }
     }
 
     template <typename T>
-    inline bool deserialize_floating_point (
+    inline bool old_deserialize_floating_point (
         T& item,
         std::istream& in 
     )
@@ -517,40 +552,66 @@ namespace dlib
         return (in.get() != ' ');
     }
 
+    template <typename T>
+    inline void deserialize_floating_point (
+        T& item,
+        std::istream& in 
+    )
+    {
+        // check if the serialized data uses the older ASCII based format.  We can check
+        // this easily because the new format starts with the integer control byte which
+        // always has 0 bits in the positions corresponding to the bitmask 0x70.  Moreover,
+        // since the previous format used ASCII numbers we know that no valid bytes can
+        // have bit values of one in the positions indicated 0x70.  So this test looks at
+        // the first byte and checks if the serialized data uses the old format or the new
+        // format.
+        if ((in.rdbuf()->sgetc()&0x70) == 0)
+        {
+            try
+            {
+                // Use the fast and compact binary serialization format.
+                float_details temp;
+                deserialize(temp, in);
+                item = temp;
+            }
+            catch (serialization_error& e)
+            { throw serialization_error(e.info + "\n   while deserializing a floating point number."); }
+        }
+        else
+        {
+            if (old_deserialize_floating_point(item, in))
+                throw serialization_error("Error deserializing a floating point number.");
+        }
+    }
+
     inline void serialize ( const float& item, std::ostream& out) 
     { 
-        if (serialize_floating_point(item,out))
-            throw serialization_error("Error serializing object of type float"); 
+        serialize_floating_point(item,out);
     }
 
     inline void deserialize (float& item, std::istream& in) 
     { 
-        if (deserialize_floating_point(item,in))
-            throw serialization_error("Error deserializing object of type float");
+        deserialize_floating_point(item,in);
     }
 
     inline void serialize ( const double& item, std::ostream& out) 
     { 
-        if (serialize_floating_point(item,out))
-            throw serialization_error("Error serializing object of type double"); 
+        serialize_floating_point(item,out);
     }
 
     inline void deserialize (double& item, std::istream& in) 
     { 
-        if (deserialize_floating_point(item,in))
-            throw serialization_error("Error deserializing object of type double");
+        deserialize_floating_point(item,in);
     }
 
     inline void serialize ( const long double& item, std::ostream& out) 
     { 
-        if (serialize_floating_point(item,out))
-            throw serialization_error("Error serializing object of type long double"); 
+        serialize_floating_point(item,out);
     }
 
     inline void deserialize ( long double& item, std::istream& in) 
     { 
-        if (deserialize_floating_point(item,in))
-            throw serialization_error("Error deserializing object of type long double");
+        deserialize_floating_point(item,in);
     }
 
 // ----------------------------------------------------------------------------------------
@@ -599,6 +660,26 @@ namespace dlib
 
     inline void deserialize (
         std::string& item,
+        std::istream& in
+    );
+
+    inline void serialize (
+        const std::wstring& item,
+        std::ostream& out
+    );
+
+    inline void deserialize (
+        std::wstring& item,
+        std::istream& in
+    );
+
+    inline void serialize (
+        const ustring& item,
+        std::ostream& out
+    );
+
+    inline void deserialize (
+        ustring& item,
         std::istream& in
     );
 
@@ -1126,6 +1207,41 @@ namespace dlib
         }
     }
 
+    template <
+        size_t length
+        >
+    inline void serialize (
+        const char (&array)[length],
+        std::ostream& out
+    )
+    {
+        if (length != 0 && array[length-1] == '\0')
+        {
+            // If this is a null terminated string then don't serialize the trailing null.
+            // We do this so that the serialization format for C-strings is the same as
+            // std::string.
+            serialize(length-1, out);
+            out.write(array, length-1);
+            if (!out)
+                throw serialization_error("Error serializing a C-style string");
+        }
+        else 
+        {
+            try
+            {
+                serialize(length,out);
+            }
+            catch (serialization_error& e)
+            {
+                throw serialization_error(e.info + "\n   while serializing a C style array");
+            }
+            if (length != 0)
+                out.write(array, length);
+            if (!out)
+                throw serialization_error("Error serializing a C-style string");
+        }
+    }
+
 // ----------------------------------------------------------------------------------------
 
     template <
@@ -1154,6 +1270,45 @@ namespace dlib
 
         if (size != length)
             throw serialization_error("Error deserializing a C style array, lengths do not match");
+    }
+
+    template <
+        size_t length
+        >
+    inline void deserialize (
+        char (&array)[length],
+        std::istream& in
+    )
+    {
+        size_t size;
+        try
+        {
+            deserialize(size,in); 
+        }
+        catch (serialization_error& e)
+        {
+            throw serialization_error(e.info + "\n   while deserializing a C style array");
+        }
+
+        if (size == length)
+        {
+            in.read(array, size);
+            if (!in)
+                throw serialization_error("Error deserializing a C-style array");
+        }
+        else if (size+1 == length)
+        {
+            // In this case we are deserializing a C-style array so we need to add the null
+            // terminator.
+            in.read(array, size);
+            array[size] = '\0';
+            if (!in)
+                throw serialization_error("Error deserializing a C-style string");
+        }
+        else
+        {
+            throw serialization_error("Error deserializing a C style array, lengths do not match");
+        }
     }
 
 // ----------------------------------------------------------------------------------------
@@ -1201,6 +1356,60 @@ namespace dlib
     }
 
 // ----------------------------------------------------------------------------------------
+
+    class proxy_serialize 
+    {
+    public:
+        explicit proxy_serialize (
+            const std::string& filename
+        ) 
+        {
+            fout.reset(new std::ofstream(filename.c_str(), std::ios::binary));
+            if (!(*fout))
+                throw serialization_error("Unable to open " + filename + " for writing.");
+        }
+
+        template <typename T>
+        inline proxy_serialize& operator<<(const T& item)
+        {
+            serialize(item, *fout);
+            return *this;
+        }
+
+    private:
+        shared_ptr<std::ofstream> fout;
+    };
+
+    class proxy_deserialize 
+    {
+    public:
+        explicit proxy_deserialize (
+            const std::string& filename
+        ) 
+        {
+            fin.reset(new std::ifstream(filename.c_str(), std::ios::binary));
+            if (!(*fin))
+                throw serialization_error("Unable to open " + filename + " for reading.");
+        }
+
+        template <typename T>
+        inline proxy_deserialize& operator>>(T& item)
+        {
+            deserialize(item, *fin);
+            return *this;
+        }
+
+    private:
+        shared_ptr<std::ifstream> fin;
+    };
+
+    inline proxy_serialize serialize(const std::string& filename)
+    { return proxy_serialize(filename); }
+    inline proxy_deserialize deserialize(const std::string& filename)
+    { return proxy_deserialize(filename); }
+
+// ----------------------------------------------------------------------------------------
+
 }
 
 // forward declare the MessageLite object so we can reference it below.

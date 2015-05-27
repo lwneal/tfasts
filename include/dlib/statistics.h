@@ -10,6 +10,8 @@
 #include "statistics/sammon.h"
 #include "statistics/cca.h"
 #include "statistics/average_precision.h"
+#include "statistics/vector_normalizer_frobmetric.h"
+#include "statistics/lda.h"
 
 #endif // DLIB_STATISTICs_H_ 
 

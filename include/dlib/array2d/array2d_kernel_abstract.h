@@ -108,7 +108,6 @@ namespace dlib
         private:
             // restricted functions
             row();
-            row(row&);
             row& operator=(row&);
         };
 
@@ -129,8 +128,7 @@ namespace dlib
         );
         /*!
             requires
-                - cols > 0 && rows > 0 or
-                  cols == 0 && rows == 0
+                - rows >= 0 && cols >= 0
             ensures
                 - #nc() == cols
                 - #nr() == rows
@@ -175,8 +173,7 @@ namespace dlib
         );
         /*!
             requires
-                - cols > 0 && rows > 0 or
-                  cols == 0 && rows == 0
+                - rows >= 0 && cols >= 0
             ensures
                 - #nc() == cols
                 - #nr() == rows
@@ -191,7 +188,7 @@ namespace dlib
                     value for its type.
         !*/
 
-        row& operator[] (
+        row operator[] (
             long row_index
         );
         /*!
@@ -202,7 +199,7 @@ namespace dlib
                   given row_index'th row in *this.
         !*/
 
-        const row& operator[] (
+        const row operator[] (
             long row_index
         ) const;
         /*!
@@ -265,7 +262,9 @@ namespace dlib
         std::ostream& out 
     );   
     /*!
-        provides serialization support 
+        Provides serialization support.  Note that the serialization formats used by the
+        dlib::matrix and dlib::array2d objects are compatible.  That means you can load the
+        serialized data from one into another and it will work properly.
     !*/
 
     template <

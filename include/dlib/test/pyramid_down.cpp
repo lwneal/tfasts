@@ -23,7 +23,7 @@ namespace
 void test_pyramid_down_grayscale()
 {
     array2d<unsigned char> img, down;
-    pyramid_down pyr;
+    pyramid_down<2> pyr;
 
     img.set_size(300,264);
 
@@ -52,7 +52,7 @@ void test_pyramid_down_rgb()
 {
     array2d<rgb_pixel> img;
     array2d<bgr_pixel> down;
-    pyramid_down pyr;
+    pyramid_down<2> pyr;
 
     img.set_size(231, 351);
 
@@ -206,7 +206,7 @@ void test_pyramid_down_rgb2()
 template <typename pyramid_down_type>
 void test_pyramid_down_grayscale2()
 {
-    array2d<unsigned char> img, img3;
+    array2d<unsigned char> img;
     array2d<unsigned char> img2, img4;
 
 
@@ -225,7 +225,6 @@ void test_pyramid_down_grayscale2()
     pyramid_down_type pyr;
 
     pyr(img, img2);
-    pyr(img, img3);
 
 
     DLIB_TEST(((rect1.tl_corner() - pyr.rect_down(pyr.rect_up(rect1,2),2).tl_corner()).length()) < 1);
@@ -246,17 +245,13 @@ void test_pyramid_down_grayscale2()
     /*
     image_window my_window(img);
     image_window win2(img2);
-    image_window win3(img3);
     win2.add_overlay(image_window::overlay_rect(rect1, rgb_pixel(255,0,0)));
     win2.add_overlay(image_window::overlay_rect(rect2, rgb_pixel(255,0,0)));
     win2.add_overlay(image_window::overlay_rect(rect3, rgb_pixel(255,0,0)));
-    win3.add_overlay(image_window::overlay_rect(rect1, rgb_pixel(255,0,0)));
-    win3.add_overlay(image_window::overlay_rect(rect2, rgb_pixel(255,0,0)));
-    win3.add_overlay(image_window::overlay_rect(rect3, rgb_pixel(255,0,0)));
     */
 
 
-    DLIB_TEST(std::abs((int)mean(subm(matrix_cast<long>(mat(img2)),rect1)) - 255) < 3);
+    DLIB_TEST(std::abs((int)mean(subm(matrix_cast<long>(mat(img2)),rect1)) - 255) <= 3);
     DLIB_TEST(std::abs((int)mean(subm(matrix_cast<long>(mat(img2)),rect2)) - 170) < 3);
     DLIB_TEST(std::abs((int)mean(subm(matrix_cast<long>(mat(img2)),rect3)) - 100) < 3);
     assign_image(img4, img);
@@ -268,12 +263,17 @@ void test_pyramid_down_grayscale2()
 
 
     // make sure the coordinate mapping is invertible when it should be
-    for (long x = -10; x <= 10; ++x)
+    for (int l = 0; l < 4; ++l)
     {
-        for (long y = -10; y <= 10; ++y)
+        for (long x = -10; x <= 10; ++x)
         {
-            DLIB_TEST_MSG(point(pyr.point_down(pyr.point_up(point(x,y)))) == point(x,y), 
-                          point(x,y) << "  " << pyr.point_up(point(x,y)) << "   " << pyr.point_down(pyr.point_up(point(x,y))));
+            for (long y = -10; y <= 10; ++y)
+            {
+                DLIB_TEST_MSG(point(pyr.point_down(pyr.point_up(point(x,y),l),l)) == point(x,y), 
+                    point(x,y) << "  " << pyr.point_up(point(x,y),l) << "   " << pyr.point_down(pyr.point_up(point(x,y),l),l));
+                DLIB_TEST_MSG(point(pyr.point_down(point(pyr.point_up(point(x,y),l)),l)) == point(x,y), 
+                    point(x,y) << "  " << pyr.point_up(point(x,y),l) << "   " << pyr.point_down(point(pyr.point_up(point(x,y),l)),l));
+            }
         }
     }
 }
@@ -325,49 +325,59 @@ void test_pyramid_down_small_sizes()
             test_pyramid_down_rgb();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down>();";
-            test_pyramid_down_small_sizes<pyramid_down>();
-            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down_3_2>();";
-            test_pyramid_down_small_sizes<pyramid_down_3_2>();
-            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down_4_3>();";
-            test_pyramid_down_small_sizes<pyramid_down_4_3>();
-            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down_5_4>();";
-            test_pyramid_down_small_sizes<pyramid_down_5_4>();
+            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down<2> >();";
+            test_pyramid_down_small_sizes<pyramid_down<2> >();
+            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down<3> >();";
+            test_pyramid_down_small_sizes<pyramid_down<3> >();
+            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down<4> >();";
+            test_pyramid_down_small_sizes<pyramid_down<4> >();
+            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down<5> >();";
+            test_pyramid_down_small_sizes<pyramid_down<5> >();
             dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_disable>();";
             test_pyramid_down_small_sizes<pyramid_disable>();
+            dlog << LINFO << "call test_pyramid_down_small_sizes<pyramid_down<9> >();";
+            test_pyramid_down_small_sizes<pyramid_down<9> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down>();";
-            test_pyramid_down_rgb2<pyramid_down>();
+            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down<2> >();";
+            test_pyramid_down_rgb2<pyramid_down<2> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down_3_2>();";
-            test_pyramid_down_rgb2<pyramid_down_3_2>();
+            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down<3> >();";
+            test_pyramid_down_rgb2<pyramid_down<3> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down_4_3>();";
-            test_pyramid_down_rgb2<pyramid_down_4_3>();
+            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down<4> >();";
+            test_pyramid_down_rgb2<pyramid_down<4> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down_5_4>();";
-            test_pyramid_down_rgb2<pyramid_down_5_4>();
+            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down<5> >();";
+            test_pyramid_down_rgb2<pyramid_down<5> >();
+
+            print_spinner();
+            dlog << LINFO << "call test_pyramid_down_rgb2<pyramid_down<8> >();";
+            test_pyramid_down_rgb2<pyramid_down<8> >();
 
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down>();";
-            test_pyramid_down_grayscale2<pyramid_down>();
+            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down<2> >();";
+            test_pyramid_down_grayscale2<pyramid_down<2> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down_3_2>();";
-            test_pyramid_down_grayscale2<pyramid_down_3_2>();
+            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down<3> >();";
+            test_pyramid_down_grayscale2<pyramid_down<3> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down_4_3>();";
-            test_pyramid_down_grayscale2<pyramid_down_4_3>();
+            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down<4> >();";
+            test_pyramid_down_grayscale2<pyramid_down<4> >();
 
             print_spinner();
-            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down_5_4>();";
-            test_pyramid_down_grayscale2<pyramid_down_5_4>();
+            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down<5> >();";
+            test_pyramid_down_grayscale2<pyramid_down<5> >();
+
+            print_spinner();
+            dlog << LINFO << "call test_pyramid_down_grayscale2<pyramid_down<6> >();";
+            test_pyramid_down_grayscale2<pyramid_down<6> >();
         }
     } a;
 

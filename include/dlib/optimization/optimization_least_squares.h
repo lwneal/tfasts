@@ -1,7 +1,7 @@
 // Copyright (C) 2010  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_OPTIMIZATION_LEAST_SQuARES_H___
-#define DLIB_OPTIMIZATION_LEAST_SQuARES_H___
+#ifndef DLIB_OPTIMIZATION_LEAST_SQuARES_H_h_
+#define DLIB_OPTIMIZATION_LEAST_SQuARES_H_h_
 
 #include "../matrix.h"
 #include "optimization_trust_region.h"
@@ -190,6 +190,9 @@ namespace dlib
         double radius = 1
     )
     {
+        // The starting point (i.e. x) must be a column vector.  
+        COMPILE_TIME_ASSERT(T::NC <= 1);
+
         // make sure requires clause is not broken
         DLIB_ASSERT(is_vector(mat(list)) && list.size() > 0 && 
                     is_col_vector(x) && radius > 0,
@@ -313,6 +316,9 @@ namespace dlib
         double radius = 1
     )
     {
+        // The starting point (i.e. x) must be a column vector.  
+        COMPILE_TIME_ASSERT(T::NC <= 1);
+
         // make sure requires clause is not broken
         DLIB_ASSERT(is_vector(mat(list)) && list.size() > 0 && 
                     is_col_vector(x) && radius > 0,
@@ -334,6 +340,6 @@ namespace dlib
 
 }
 
-#endif // DLIB_OPTIMIZATION_LEAST_SQuARES_H___
+#endif // DLIB_OPTIMIZATION_LEAST_SQuARES_H_h_
 
 

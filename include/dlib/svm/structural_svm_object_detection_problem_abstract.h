@@ -1,12 +1,13 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_H__
-#ifdef DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_H__
+#undef DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_Hh_
+#ifdef DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_Hh_
 
 #include "../matrix.h"
 #include "structural_svm_problem_threaded_abstract.h"
 #include <sstream>
 #include "../image_processing/full_object_detection_abstract.h"
+#include "../image_processing/box_overlap_testing.h"
 
 namespace dlib
 {
@@ -21,9 +22,9 @@ namespace dlib
                 when it detects that the image_scanner_type it is working with is incapable
                 of representing the truth rectangles it has been asked to predict.  
 
-                This kind of problem can happen when the overlap_tester_type indicates that
-                two ground truth rectangles overlap and are therefore not allowed to both
-                be output at the same time.  Or alternatively, if there are not enough
+                This kind of problem can happen when the test_box_overlap object indicates
+                that two ground truth rectangles overlap and are therefore not allowed to
+                both be output at the same time.  Or alternatively, if there are not enough
                 detection templates to cover the variety of truth rectangle shapes.
         !*/
     };
@@ -32,7 +33,6 @@ namespace dlib
 
     template <
         typename image_scanner_type,
-        typename overlap_tester_type,
         typename image_array_type 
         >
     class structural_svm_object_detection_problem : public structural_svm_problem_threaded<matrix<double,0,1> >,
@@ -41,53 +41,43 @@ namespace dlib
         /*!
             REQUIREMENTS ON image_scanner_type
                 image_scanner_type must be an implementation of 
-                dlib/image_processing/scan_image_pyramid_abstract.h
-
-            REQUIREMENTS ON overlap_tester_type
-                overlap_tester_type must be an implementation of the test_box_overlap
-                object defined in dlib/image_processing/box_overlap_testing_abstract.h.
+                dlib/image_processing/scan_fhog_pyramid_abstract.h or
+                dlib/image_processing/scan_image_custom_abstract.h or
+                dlib/image_processing/scan_image_pyramid_abstract.h or
+                dlib/image_processing/scan_image_boxes_abstract.h
 
             REQUIREMENTS ON image_array_type
                 image_array_type must be an implementation of dlib/array/array_kernel_abstract.h 
                 and it must contain objects which can be accepted by image_scanner_type::load().
 
             WHAT THIS OBJECT REPRESENTS
-                This object is a tool for learning the parameter vector needed to use
-                a scan_image_pyramid object.  
+                This object is a tool for learning the parameter vector needed to use a
+                scan_image_pyramid, scan_fhog_pyramid, scan_image_custom, or
+                scan_image_boxes object.  
 
                 It learns the parameter vector by formulating the problem as a structural 
-                SVM problem.  The general approach is similar to the method discussed in 
-                Learning to Localize Objects with Structured Output Regression by 
-                Matthew B. Blaschko and Christoph H. Lampert.  However, the method has 
-                been extended to datasets with multiple, potentially overlapping, objects 
-                per image and the measure of loss is different from what is described in 
-                the paper.  
+                SVM problem.  The exact details of the method are described in the paper 
+                Max-Margin Object Detection by Davis E. King (http://arxiv.org/abs/1502.00046).
 
-                In particular, the loss is measured as follows:
-                    let FA == the number of false alarms produced by a labeling of an image.
-                    let MT == the number of targets missed by a labeling of an image.  
-                    Then the loss for a particular labeling is the quantity:
-                        FA*get_loss_per_false_alarm() + MT*get_loss_per_missed_target()
 
-                A detection is considered a false alarm if it doesn't match with any 
-                of the ground truth rectangles or if it is a duplicate detection of a 
-                truth rectangle.  Finally, for the purposes of calculating loss, a match 
-                is determined using the following formula, rectangles A and B match 
-                if and only if:
-                    A.intersect(B).area()/(A+B).area() > get_match_eps()
         !*/
+
     public:
 
         structural_svm_object_detection_problem(
             const image_scanner_type& scanner,
-            const overlap_tester_type& overlap_tester,
+            const test_box_overlap& overlap_tester,
+            const bool auto_overlap_tester,
             const image_array_type& images,
             const std::vector<std::vector<full_object_detection> >& truth_object_detections,
+            const std::vector<std::vector<rectangle> >& ignore,
+            const test_box_overlap& ignore_overlap_tester,
             unsigned long num_threads = 2
         );
         /*!
             requires
                 - is_learning_problem(images, truth_object_detections)
+                - ignore.size() == images.size()
                 - scanner.get_num_detection_templates() > 0
                 - scanner.load(images[0]) must be a valid expression.
                 - for all valid i, j:
@@ -99,18 +89,40 @@ namespace dlib
                   attempts to learn to predict truth_object_detections[i] based on
                   images[i].  Or in other words, this object can be used to learn a
                   parameter vector, w, such that an object_detector declared as:
-                    object_detector<image_scanner_type,overlap_tester_type> detector(scanner,overlap_tester,w)
+                    object_detector<image_scanner_type> detector(scanner,get_overlap_tester(),w)
                   results in a detector object which attempts to compute the locations of
                   all the objects in truth_object_detections.  So if you called
                   detector(images[i]) you would hopefully get a list of rectangles back
                   that had truth_object_detections[i].size() elements and contained exactly
                   the rectangles indicated by truth_object_detections[i].
+                - if (auto_overlap_tester == true) then
+                    - #get_overlap_tester() == a test_box_overlap object that is configured
+                      using the find_tight_overlap_tester() routine and the contents of
+                      truth_object_detections. 
+                - else
+                    - #get_overlap_tester() == overlap_tester
                 - #get_match_eps() == 0.5
                 - This object will use num_threads threads during the optimization 
                   procedure.  You should set this parameter equal to the number of 
                   available processing cores on your machine.
                 - #get_loss_per_missed_target() == 1
                 - #get_loss_per_false_alarm() == 1
+                - for all valid i:
+                    - Within images[i] any detections that match against a rectangle in
+                      ignore[i], according to ignore_overlap_tester, are ignored.  That is,
+                      the optimizer doesn't care if the detector outputs a detection that
+                      matches any of the ignore rectangles or if it fails to output a
+                      detection for an ignore rectangle.  Therefore, if there are objects
+                      in your dataset that you are unsure you want to detect or otherwise
+                      don't care if the detector gets or doesn't then you can mark them
+                      with ignore rectangles and the optimizer will simply ignore them. 
+        !*/
+
+        test_box_overlap get_overlap_tester (
+        ) const;
+        /*!
+            ensures
+                - returns the overlap tester used by this object.  
         !*/
 
         void set_match_eps (
@@ -177,7 +189,7 @@ namespace dlib
 
 }
 
-#endif // DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_H__
+#endif // DLIB_STRUCTURAL_SVM_ObJECT_DETECTION_PROBLEM_ABSTRACT_Hh_
 
 
 

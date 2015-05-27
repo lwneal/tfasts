@@ -1,13 +1,15 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_TImING_H__
-#define DLIB_TImING_H__
+#ifndef DLIB_TImING_Hh_
+#define DLIB_TImING_Hh_
 
 #include "misc_api.h"
 #include <cstring>
 #include "string.h"
 
 #include <iostream>
+
+// ----------------------------------------------------------------------------------------
 
 /*!A timing
 
@@ -39,7 +41,33 @@
             block #2: 10.0 seconds
 
     So we spent 5 seconds in block #1 and 10 seconds in block #2
+
+
+
+    Additionally, note that you can use an RAII style timing block object.  For
+    example, if we wanted to find out how much time we spent in a loop a convenient
+    way to do this would be as follows:
+
+    int main()
+    {
+        using namespace dlib::timing;
+        for (int i = 0; i < 10; ++i)
+        {
+            block tb(1, "main loop");
+
+            dlib::sleep(1500);
+        } 
+
+        print();
+    }
+
+    This program would output:
+        Timing report: 
+            block main loop: 15.0 seconds
+
 !*/
+
+// ----------------------------------------------------------------------------------------
 
 namespace dlib
 {
@@ -102,10 +130,10 @@ namespace dlib
                 string name;
                 // Check if the name buffer is empty.  Use the name it contains if it isn't.
                 if (name_buf(i,"")[0] != '\0')
-                    name = name_buf(i,"");
+                    name = cast_to_string(i) + ": " + name_buf(i,"");
                 else 
                     name = cast_to_string(i);
-                max_name_length = std::max(max_name_length, name.size());
+                max_name_length = std::max<unsigned long>(max_name_length, name.size());
             }
 
             for (int i = 0; i < TIME_SLOTS; ++i)
@@ -116,7 +144,7 @@ namespace dlib
                     string name;
                     // Check if the name buffer is empty.  Use the name it contains if it isn't.
                     if (name_buf(i,"")[0] != '\0')
-                        name = name_buf(i,"");
+                        name = cast_to_string(i) + ": " + name_buf(i,"");
                     else 
                         name = cast_to_string(i);
 
@@ -163,5 +191,5 @@ namespace dlib
 }
 
 
-#endif // DLIB_TImING_H__
+#endif // DLIB_TImING_Hh_
 

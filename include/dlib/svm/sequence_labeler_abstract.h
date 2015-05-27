@@ -1,7 +1,7 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_SEQUENCE_LAbELER_ABSTRACT_H___
-#ifdef DLIB_SEQUENCE_LAbELER_ABSTRACT_H___
+#undef DLIB_SEQUENCE_LAbELER_ABSTRACT_H_h_
+#ifdef DLIB_SEQUENCE_LAbELER_ABSTRACT_H_h_
 
 #include "../matrix.h"
 #include <vector>
@@ -36,8 +36,8 @@ namespace dlib
                 method of this class.
 
             THREAD SAFETY
-                Instances of this object should be thread safe, that is, it should 
-                be safe for multiple threads to make concurrent calls to the member 
+                Instances of this object are required to be threadsafe, that is, it should
+                be safe for multiple threads to make concurrent calls to the member
                 functions of this object.
         !*/
 
@@ -242,10 +242,10 @@ namespace dlib
                 the example_feature_extractor discussed above.
 
             WHAT THIS OBJECT REPRESENTS
-                This object is a tool for doing sequence labeling.  In particular,
-                it is capable of representing sequence labeling models such as
-                those produced by Hidden Markov SVMs or Conditional Random fields.
-                See the following papers for an introduction to these techniques:
+                This object is a tool for doing sequence labeling.  In particular, it is
+                capable of representing sequence labeling models such as those produced by
+                Hidden Markov SVMs or Chain Structured Conditional Random fields.  See the
+                following papers for an introduction to these techniques:
                     - Hidden Markov Support Vector Machines by 
                       Y. Altun, I. Tsochantaridis, T. Hofmann
                     - Shallow Parsing with Conditional Random Fields by 
@@ -391,6 +391,6 @@ namespace dlib
 
 }
 
-#endif // DLIB_SEQUENCE_LAbELER_ABSTRACT_H___
+#endif // DLIB_SEQUENCE_LAbELER_ABSTRACT_H_h_
 
 

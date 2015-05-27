@@ -1,14 +1,14 @@
 // Copyright (C) 2008  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#ifndef DLIB_THREAD_POOl_H__
-#define DLIB_THREAD_POOl_H__ 
+#ifndef DLIB_THREAD_POOl_Hh_
+#define DLIB_THREAD_POOl_Hh_ 
 
 #include "thread_pool_extension_abstract.h"
+#include "multithreaded_object_extension.h"
 #include "../member_function_pointer.h"
 #include "../bound_function_pointer.h"
 #include "threads_kernel.h"
 #include "auto_mutex_extension.h"
-#include "multithreaded_object_extension.h"
 #include "../uintn.h"
 #include "../array.h"
 #include "../smart_pointers_thread_safe.h"
@@ -1354,6 +1354,6 @@ namespace dlib
 #include "thread_pool_extension.cpp"
 #endif
 
-#endif // DLIB_THREAD_POOl_H__
+#endif // DLIB_THREAD_POOl_Hh_
 
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_H__
-#ifdef DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_H__
+#undef DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_Hh_
+#ifdef DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_Hh_
 
 #include "../matrix.h"
 #include <vector>
@@ -50,11 +50,14 @@ namespace dlib
                     - The elements of A are unique. That is, there aren't any 
                       elements of A which are equal.  
                     - A.size() == cost.nr()
+
+            - This function implements the O(N^3) version of the Hungarian algorithm 
+              where N is the number of rows in the cost matrix.
     !*/
 
 // ----------------------------------------------------------------------------------------
 
 }
 
-#endif // DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_H__
+#endif // DLIB_MAX_COST_ASSIgNMENT_ABSTRACT_Hh_
 

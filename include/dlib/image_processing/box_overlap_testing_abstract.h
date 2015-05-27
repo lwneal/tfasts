@@ -1,7 +1,7 @@
 // Copyright (C) 2011  Davis E. King (davis@dlib.net)
 // License: Boost Software License   See LICENSE.txt for the full license.
-#undef DLIB_BOX_OVERlAP_TESTING_ABSTRACT_H__
-#ifdef DLIB_BOX_OVERlAP_TESTING_ABSTRACT_H__
+#undef DLIB_BOX_OVERlAP_TESTING_ABSTRACT_Hh_
+#ifdef DLIB_BOX_OVERlAP_TESTING_ABSTRACT_Hh_
 
 #include "../geometry.h"
 
@@ -28,13 +28,13 @@ namespace dlib
         );
         /*!
             ensures
-                - #get_overlap_thresh() == 0.5
                 - #get_match_thresh()   == 0.5
+                - #get_overlap_thresh() == 1.0
         !*/
 
-        test_box_overlap (
+        explicit test_box_overlap (
             double match_thresh,
-            double overlap_thresh
+            double overlap_thresh = 1.0
         );
         /*!
             requires
@@ -54,19 +54,10 @@ namespace dlib
                 - returns true if a and b overlap "enough". This is defined precisely below.
                 - if (a.intersect(b).area()/(a+b).area() > get_match_thresh() ||
                       a.intersect(b).area()/a.area()     > get_overlap_thresh() ||
-                      a.intersect(b).area()/a.area()     > get_overlap_thresh() ) then
+                      a.intersect(b).area()/b.area()     > get_overlap_thresh() ) then
                     - returns true
                 - else
                     - returns false
-        !*/
-
-        double get_overlap_thresh (
-        ) const;
-        /*!
-            ensures
-                - returns the threshold used to determine if two rectangles overlap.  This
-                  value is the percent of a rectangle's area covered by another rectangle.
-
         !*/
 
         double get_match_thresh (
@@ -76,6 +67,15 @@ namespace dlib
                 - returns the threshold used to determine if two rectangles match.
                   Note that the match score varies from 0 to 1 and only becomes 1
                   when two rectangles are identical.
+
+        !*/
+
+        double get_overlap_thresh (
+        ) const;
+        /*!
+            ensures
+                - returns the threshold used to determine if two rectangles overlap.  This
+                  value is the percent of a rectangle's area covered by another rectangle.
 
         !*/
 
@@ -119,8 +119,32 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
+    bool overlaps_any_box (
+        const test_box_overlap& tester,
+        const std::vector<rectangle>& rects,
+        const rectangle& rect
+    );
+    /*!
+        ensures
+            - returns true if rect overlaps any box in rects and false otherwise.  Overlap
+              is determined based on the given tester object.
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
+    bool overlaps_any_box (
+        const std::vector<rectangle>& rects,
+        const rectangle& rect
+    );
+    /*!
+        ensures
+            - returns overlaps_any_box(test_box_overlap(), rects, rect)
+    !*/
+
+// ----------------------------------------------------------------------------------------
+
 }
 
-#endif // DLIB_BOX_OVERlAP_TESTING_ABSTRACT_H__
+#endif // DLIB_BOX_OVERlAP_TESTING_ABSTRACT_Hh_
 
 
