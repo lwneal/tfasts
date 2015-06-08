@@ -34,12 +34,15 @@ struct RIFF_WAV_std_head {
 	bool is_valid_header() {
 		if (ChunkID[0] != 'R' || ChunkID[1] != 'I'
 			|| ChunkID[2] != 'F' || ChunkID[3] != 'F')
+      std::cerr << "Wav header does not start with 'RIFF'" << std::endl;
 			return false;
 		if (Subchunk1ID[0] != 'f' || Subchunk1ID[1] != 'm'
 			|| Subchunk1ID[2] != 't' || Subchunk1ID[3] != ' ')
+      std::cerr << "Missing 'fmt' in WAV header" << std::endl;
 			return false;
 		if (Subchunk2ID[0] != 'd' || Subchunk2ID[1] != 'a'
 			|| Subchunk2ID[2] != 't' || Subchunk2ID[3] != 'a')
+      std::cerr << "Missing 'data' in WAV header" << std::endl;
 			return false;
 		return true;
 	}
@@ -66,7 +69,7 @@ long load_pcm_wav_mono(std::string &filename, vec_type& samples, int &sample_rat
 	if (!ifs.good())
 		std::cerr << "Error opening header for file " << filename << std::endl;
 	if (!header.is_valid_header())
-		std::cerr << "Error parsing header for WAV file " << filename;
+		std::cerr << "Error parsing header for WAV file " << filename << std::endl;
 
 	// Allocate the required number of samples for the PCM input
 	samples.reserve(header.Subchunk2Size / (header.NumChannels * header.BitsPerSample/8) );
