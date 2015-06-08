@@ -33,17 +33,20 @@ struct RIFF_WAV_std_head {
 
 	bool is_valid_header() {
 		if (ChunkID[0] != 'R' || ChunkID[1] != 'I'
-			|| ChunkID[2] != 'F' || ChunkID[3] != 'F')
+			|| ChunkID[2] != 'F' || ChunkID[3] != 'F') {
       std::cerr << "Wav header does not start with 'RIFF'" << std::endl;
 			return false;
+    }
 		if (Subchunk1ID[0] != 'f' || Subchunk1ID[1] != 'm'
-			|| Subchunk1ID[2] != 't' || Subchunk1ID[3] != ' ')
+			|| Subchunk1ID[2] != 't' || Subchunk1ID[3] != ' ') {
       std::cerr << "Missing 'fmt' in WAV header" << std::endl;
 			return false;
+    }
 		if (Subchunk2ID[0] != 'd' || Subchunk2ID[1] != 'a'
-			|| Subchunk2ID[2] != 't' || Subchunk2ID[3] != 'a')
+			|| Subchunk2ID[2] != 't' || Subchunk2ID[3] != 'a') {
       std::cerr << "Missing 'data' in WAV header" << std::endl;
 			return false;
+    }
 		return true;
 	}
 };
