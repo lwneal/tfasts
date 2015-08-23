@@ -1,3 +1,5 @@
+import numpy
+import theano
 import theano.tensor as T
 
 class LogisticRegression(object):
@@ -121,3 +123,4 @@ class LogisticRegression(object):
             return T.mean(T.neq(self.y_pred, y))
         else:
             raise NotImplementedError()
+
