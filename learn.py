@@ -1,291 +1,256 @@
 """
     Usage:
-        learn.py <mnist_training> <mnist_labels>
-"""
-import struct
-import cPickle
-import gzip
-import os
-import sys
-import timeit
-import random
-import time
+        learn.py <mnist_training> <mnist_labels> [--epochs=N]
 
+    Arguments:
+        -e, --epochs=N       Number of epochs to run [default: 10]
+
+
+This tutorial introduces the LeNet5 neural network architecture
+using Theano.  LeNet5 is a convolutional neural network, good for
+classifying images. This tutorial shows how to build the architecture,
+and comes with all the hyper-parameters you need to reproduce the
+paper's MNIST results.
+
+
+This implementation simplifies the model in the following ways:
+
+ - LeNetConvPool doesn't implement location-specific gain and bias parameters
+ - LeNetConvPool doesn't implement pooling by average, it implements pooling
+   by max.
+ - Digit classification is implemented with a logistic regression rather than
+   an RBF network
+ - LeNet5 was not fully-connected convolutions at second layer
+
+References:
+ - Y. LeCun, L. Bottou, Y. Bengio and P. Haffner:
+   Gradient-Based Learning Applied to Document
+   Recognition, Proceedings of the IEEE, 86(11):2278-2324, November 1998.
+   http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
+
+"""
+import cPickle
 import docopt
+import gzip
 import numpy
+import os
+import random
+import struct
+import sys
 import theano
 import theano.tensor as T
-
+import time
+import timeit
 from logistic_sgd import LogisticRegression
+from logistic_sgd import sgd_optimization_mnist
+from multilayer_perceptron import HiddenLayer
+from multilayer_perceptron import test_mlp
+from theano.tensor.nnet import conv
+from theano.tensor.signal import downsample
 
 
-# start-snippet-1
-class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, W=None, b=None,
-                 activation=T.tanh):
+class LeNetConvPoolLayer(object):
+    """Pool Layer of a convolutional network """
+
+    def __init__(self, rng, input, filter_shape, image_shape, poolsize=(2, 2)):
         """
-        Typical hidden layer of a MLP: units are fully-connected and have
-        sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
-        and the bias vector b is of shape (n_out,).
-
-        NOTE : The nonlinearity used here is tanh
-
-        Hidden unit activation is given by: tanh(dot(input,W) + b)
+        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
-        :type input: theano.tensor.dmatrix
-        :param input: a symbolic tensor of shape (n_examples, n_in)
+        :type input: theano.tensor.dtensor4
+        :param input: symbolic image tensor, of shape image_shape
 
-        :type n_in: int
-        :param n_in: dimensionality of input
+        :type filter_shape: tuple or list of length 4
+        :param filter_shape: (number of filters, num input feature maps,
+                              filter height, filter width)
 
-        :type n_out: int
-        :param n_out: number of hidden units
+        :type image_shape: tuple or list of length 4
+        :param image_shape: (batch size, num input feature maps,
+                             image height, image width)
 
-        :type activation: theano.Op or function
-        :param activation: Non linearity to be applied in the hidden
-                           layer
+        :type poolsize: tuple or list of length 2
+        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
         """
+
+        assert image_shape[1] == filter_shape[1]
         self.input = input
-        # end-snippet-1
 
-        # `W` is initialized with `W_values` which is uniformely sampled
-        # from sqrt(-6./(n_in+n_hidden)) and sqrt(6./(n_in+n_hidden))
-        # for tanh activation function
-        # the output of uniform if converted using asarray to dtype
-        # theano.config.floatX so that the code is runable on GPU
-        # Note : optimal initialization of weights is dependent on the
-        #        activation function used (among other things).
-        #        For example, results presented in [Xavier10] suggest that you
-        #        should use 4 times larger initial weights for sigmoid
-        #        compared to tanh
-        #        We have no info for other function, so we use the same as
-        #        tanh.
-        if W is None:
-            W_values = numpy.asarray(
-                rng.uniform(
-                    low=-numpy.sqrt(6. / (n_in + n_out)),
-                    high=numpy.sqrt(6. / (n_in + n_out)),
-                    size=(n_in, n_out)
-                ),
+        # there are "num input feature maps * filter height * filter width"
+        # inputs to each hidden unit
+        fan_in = numpy.prod(filter_shape[1:])
+        # each unit in the lower layer receives a gradient from:
+        # "num output feature maps * filter height * filter width" /
+        #   pooling size
+        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]) /
+                   numpy.prod(poolsize))
+        # initialize weights with random weights
+        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+        self.W = theano.shared(
+            numpy.asarray(
+                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
                 dtype=theano.config.floatX
-            )
-            if activation == theano.tensor.nnet.sigmoid:
-                W_values *= 4
-
-            W = theano.shared(value=W_values, name='W', borrow=True)
-
-        if b is None:
-            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
-            b = theano.shared(value=b_values, name='b', borrow=True)
-
-        self.W = W
-        self.b = b
-
-        lin_output = T.dot(input, self.W) + self.b
-        self.output = (
-            lin_output if activation is None
-            else activation(lin_output)
+            ),
+            borrow=True
         )
-        # parameters of the model
-        self.params = [self.W, self.b]
 
+        # the bias is a 1D tensor -- one bias per output feature map
+        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+        self.b = theano.shared(value=b_values, borrow=True)
 
-# start-snippet-2
-class MLP(object):
-    """Multi-Layer Perceptron Class
-
-    A multilayer perceptron is a feedforward artificial neural network model
-    that has one layer or more of hidden units and nonlinear activations.
-    Intermediate layers usually have as activation function tanh or the
-    sigmoid function (defined here by a ``HiddenLayer`` class)  while the
-    top layer is a softmax layer (defined here by a ``LogisticRegression``
-    class).
-    """
-
-    def __init__(self, rng, input, n_in, n_hidden, n_out):
-        """Initialize the parameters for the multilayer perceptron
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.TensorType
-        :param input: symbolic variable that describes the input of the
-        architecture (one minibatch)
-
-        :type n_in: int
-        :param n_in: number of input units, the dimension of the space in
-        which the datapoints lie
-
-        :type n_hidden: int
-        :param n_hidden: number of hidden units
-
-        :type n_out: int
-        :param n_out: number of output units, the dimension of the space in
-        which the labels lie
-
-        """
-
-        # Since we are dealing with a one hidden layer MLP, this will translate
-        # into a HiddenLayer with a tanh activation function connected to the
-        # LogisticRegression layer; the activation function can be replaced by
-        # sigmoid or any other nonlinear function
-        self.hiddenLayer = HiddenLayer(
-            rng=rng,
+        # convolve input feature maps with filters
+        conv_out = conv.conv2d(
             input=input,
-            n_in=n_in,
-            n_out=n_hidden,
-            activation=T.tanh
+            filters=self.W,
+            filter_shape=filter_shape,
+            image_shape=image_shape
         )
 
-        # The logistic regression layer gets as input the hidden units
-        # of the hidden layer
-        self.logRegressionLayer = LogisticRegression(
-            input=self.hiddenLayer.output,
-            n_in=n_hidden,
-            n_out=n_out
-        )
-        # end-snippet-2 start-snippet-3
-        # L1 norm ; one regularization option is to enforce L1 norm to
-        # be small
-        self.L1 = (
-            abs(self.hiddenLayer.W).sum()
-            + abs(self.logRegressionLayer.W).sum()
+        # downsample each feature map individually, using maxpooling
+        pooled_out = downsample.max_pool_2d(
+            input=conv_out,
+            ds=poolsize,
+            ignore_border=True
         )
 
-        # square of L2 norm ; one regularization option is to enforce
-        # square of L2 norm to be small
-        self.L2_sqr = (
-            (self.hiddenLayer.W ** 2).sum()
-            + (self.logRegressionLayer.W ** 2).sum()
-        )
+        # add the bias term. Since the bias is a vector (1D array), we first
+        # reshape it to a tensor of shape (1, n_filters, 1, 1). Each bias will
+        # thus be broadcasted across mini-batches and feature map
+        # width & height
+        self.output = T.tanh(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
 
-        # negative log likelihood of the MLP is given by the negative
-        # log likelihood of the output of the model, computed in the
-        # logistic regression layer
-        self.negative_log_likelihood = (
-            self.logRegressionLayer.negative_log_likelihood
-        )
-        # same holds for the function computing the number of errors
-        self.errors = self.logRegressionLayer.errors
-
-        # the parameters of the model are the parameters of the two layer it is
-        # made out of
-        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
-        # end-snippet-3
+        # store parameters of this layer
+        self.params = [self.W, self.b]
 
         # keep track of model input
         self.input = input
 
-        # pass through for results of output layer
-        self.y_pred = self.logRegressionLayer.y_pred
 
-
-def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
-             learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             batch_size=20, n_hidden=500):
-    """
-    Demonstrate stochastic gradient descent optimization for a multilayer
-    perceptron
-
-    This is demonstrated on MNIST.
+def evaluate_lenet5(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
+                    learning_rate=0.1, n_epochs=10,
+                    nkerns=[20, 50], batch_size=500):
+    """ Demonstrates lenet on MNIST dataset
 
     :type learning_rate: float
     :param learning_rate: learning rate used (factor for the stochastic
-    gradient
-
-    :type L1_reg: float
-    :param L1_reg: L1-norm's weight when added to the cost (see
-    regularization)
-
-    :type L2_reg: float
-    :param L2_reg: L2-norm's weight when added to the cost (see
-    regularization)
+                          gradient)
 
     :type n_epochs: int
     :param n_epochs: maximal number of epochs to run the optimizer
+
+    :type nkerns: list of ints
+    :param nkerns: number of kernels on each layer
     """
 
+    rng = numpy.random.RandomState(23455)
+
     # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
+    n_train_batches = train_set_x.get_value(borrow=True).shape[0]
+    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
+    n_test_batches = test_set_x.get_value(borrow=True).shape[0]
+    n_train_batches /= batch_size
+    n_valid_batches /= batch_size
+    n_test_batches /= batch_size
+
+    # allocate symbolic variables for the data
+    index = T.lscalar()  # index to a [mini]batch
+
+    # start-snippet-1
+    x = T.matrix('x')   # the data is presented as rasterized images
+    y = T.ivector('y')  # the labels are presented as 1D vector of
+                        # [int] labels
 
     ######################
     # BUILD ACTUAL MODEL #
     ######################
     print '... building the model'
 
-    # allocate symbolic variables for the data
-    index = T.lscalar()  # index to a [mini]batch
-    x = T.matrix('x')  # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of
-                        # [int] labels
+    # Reshape matrix of rasterized images of shape (batch_size, 28 * 28)
+    # to a 4D tensor, compatible with our LeNetConvPoolLayer
+    # (28, 28) is the size of MNIST images.
+    layer0_input = x.reshape((batch_size, 1, 28, 28))
 
-    rng = numpy.random.RandomState(1234)
-
-    # construct the MLP class
-    classifier = MLP(
-        rng=rng,
-        input=x,
-        n_in=28 * 28,
-        n_hidden=n_hidden,
-        n_out=10
+    # Construct the first convolutional pooling layer:
+    # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
+    # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
+    # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
+    layer0 = LeNetConvPoolLayer(
+        rng,
+        input=layer0_input,
+        image_shape=(batch_size, 1, 28, 28),
+        filter_shape=(nkerns[0], 1, 5, 5),
+        poolsize=(2, 2)
     )
 
-    # start-snippet-4
-    # the cost we minimize during training is the negative log likelihood of
-    # the model plus the regularization terms (L1 and L2); cost is expressed
-    # here symbolically
-    cost = (
-        classifier.negative_log_likelihood(y)
-        + L1_reg * classifier.L1
-        + L2_reg * classifier.L2_sqr
+    # Construct the second convolutional pooling layer
+    # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
+    # maxpooling reduces this further to (8/2, 8/2) = (4, 4)
+    # 4D output tensor is thus of shape (batch_size, nkerns[1], 4, 4)
+    layer1 = LeNetConvPoolLayer(
+        rng,
+        input=layer0.output,
+        image_shape=(batch_size, nkerns[0], 12, 12),
+        filter_shape=(nkerns[1], nkerns[0], 5, 5),
+        poolsize=(2, 2)
     )
-    # end-snippet-4
 
-    # compiling a Theano function that computes the mistakes that are made
-    # by the model on a minibatch
+    # the HiddenLayer being fully-connected, it operates on 2D matrices of
+    # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
+    # This will generate a matrix of shape (batch_size, nkerns[1] * 4 * 4),
+    # or (500, 50 * 4 * 4) = (500, 800) with the default values.
+    layer2_input = layer1.output.flatten(2)
+
+    # construct a fully-connected sigmoidal layer
+    layer2 = HiddenLayer(
+        rng,
+        input=layer2_input,
+        n_in=nkerns[1] * 4 * 4,
+        n_out=500,
+        activation=T.tanh
+    )
+
+    # classify the values of the fully-connected sigmoidal layer
+    layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=10)
+
+    # the cost we minimize during training is the NLL of the model
+    cost = layer3.negative_log_likelihood(y)
+
+    # create a function to compute the mistakes that are made by the model
     test_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
+        [index],
+        layer3.errors(y),
         givens={
-            x: test_set_x[index * batch_size:(index + 1) * batch_size],
-            y: test_set_y[index * batch_size:(index + 1) * batch_size]
+            x: test_set_x[index * batch_size: (index + 1) * batch_size],
+            y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
 
     validate_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
+        [index],
+        layer3.errors(y),
         givens={
-            x: valid_set_x[index * batch_size:(index + 1) * batch_size],
-            y: valid_set_y[index * batch_size:(index + 1) * batch_size]
+            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
+            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
 
-    # start-snippet-5
-    # compute the gradient of cost with respect to theta (sotred in params)
-    # the resulting gradients will be stored in a list gparams
-    gparams = [T.grad(cost, param) for param in classifier.params]
+    # create a list of all model parameters to be fit by gradient descent
+    params = layer3.params + layer2.params + layer1.params + layer0.params
 
-    # specify how to update the parameters of the model as a list of
-    # (variable, update expression) pairs
+    # create a list of gradients for all model parameters
+    grads = T.grad(cost, params)
 
-    # given two lists of the same length, A = [a1, a2, a3, a4] and
-    # B = [b1, b2, b3, b4], zip generates a list C of same size, where each
-    # element is a pair formed from the two lists :
-    #    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
+    # train_model is a function that updates the model parameters by
+    # SGD Since this model has many parameters, it would be tedious to
+    # manually create an update rule for each model parameter. We thus
+    # create the updates list by automatically looping over all
+    # (params[i], grads[i]) pairs.
     updates = [
-        (param, param - learning_rate * gparam)
-        for param, gparam in zip(classifier.params, gparams)
+        (param_i, param_i - learning_rate * grad_i)
+        for param_i, grad_i in zip(params, grads)
     ]
 
-    # compiling a Theano function `train_model` that returns the cost, but
-    # in the same time updates the parameter of the model based on the rules
-    # defined in `updates`
     train_model = theano.function(
         inputs=[index],
         outputs=cost,
@@ -295,13 +260,12 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
             y: train_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
-    # end-snippet-5
+    # end-snippet-1
 
     ###############
     # TRAIN MODEL #
     ###############
     print '... training'
-
     # early-stopping parameters
     patience = 10000  # look as this many examples regardless
     patience_increase = 2  # wait this much longer when a new best is
@@ -326,43 +290,39 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
         epoch = epoch + 1
         for minibatch_index in xrange(n_train_batches):
 
-            minibatch_avg_cost = train_model(minibatch_index)
-            # iteration number
             iter = (epoch - 1) * n_train_batches + minibatch_index
 
+            print 'training @ iter = ', iter
+            cost_ij = train_model(minibatch_index)
+
             if (iter + 1) % validation_frequency == 0:
+
                 # compute zero-one loss on validation set
                 validation_losses = [validate_model(i) for i
                                      in xrange(n_valid_batches)]
                 this_validation_loss = numpy.mean(validation_losses)
-
-                print(
-                    'epoch %i, minibatch %i/%i, validation error %f %%' %
-                    (
-                        epoch,
-                        minibatch_index + 1,
-                        n_train_batches,
-                        this_validation_loss * 100.
-                    )
-                )
+                print('epoch %i, minibatch %i/%i, validation error %f %%' %
+                      (epoch, minibatch_index + 1, n_train_batches,
+                       this_validation_loss * 100.))
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
+
                     #improve patience if loss improvement is good enough
-                    if (
-                        this_validation_loss < best_validation_loss *
-                        improvement_threshold
-                    ):
+                    if this_validation_loss < best_validation_loss *  \
+                       improvement_threshold:
                         patience = max(patience, iter * patience_increase)
 
+                    # save best validation score and iteration number
                     best_validation_loss = this_validation_loss
                     best_iter = iter
 
                     # test it on the test set
-                    test_losses = [test_model(i) for i
-                                   in xrange(n_test_batches)]
+                    test_losses = [
+                        test_model(i)
+                        for i in xrange(n_test_batches)
+                    ]
                     test_score = numpy.mean(test_losses)
-
                     print(('     epoch %i, minibatch %i/%i, test error of '
                            'best model %f %%') %
                           (epoch, minibatch_index + 1, n_train_batches,
@@ -373,199 +333,18 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
                 break
 
     end_time = timeit.default_timer()
-    print(('Optimization complete. Best validation score of %f %% '
-           'obtained at iteration %i, with test performance %f %%') %
+    print('Optimization complete.')
+    print('Best validation score of %f %% obtained at iteration %i, '
+          'with test performance %f %%' %
           (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     print >> sys.stderr, ('The code for file ' +
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
-    return classifier
 
-
-def sgd_optimization_mnist(train_set_x=None, train_set_y=None,
-                           valid_set_x=None, valid_set_y=None,
-                           test_set_x=None, test_set_y=None,
-                           batch_size=600, learning_rate=0.13, n_epochs=1000):
-    """
-    Demonstrate stochastic gradient descent optimization of a log-linear
-    model
-
-    This is demonstrated on MNIST.
-
-    :type learning_rate: float
-    :param learning_rate: learning rate used (factor for the stochastic
-                          gradient)
-
-    :type n_epochs: int
-    :param n_epochs: maximal number of epochs to run the optimizer
-
-    """
-
-    # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
-
-    ######################
-    # BUILD ACTUAL MODEL #
-    ######################
-    print '... building the model'
-
-    # allocate symbolic variables for the data
-    index = T.lscalar()  # index to a [mini]batch
-
-    # generate symbolic variables for input (x and y represent a
-    # minibatch)
-    x = T.matrix('x')  # data, presented as rasterized images
-    y = T.ivector('y')  # labels, presented as 1D vector of [int] labels
-
-    # construct the logistic regression class
-    # Each MNIST image has size 28*28
-    classifier = LogisticRegression(input=x, n_in=28 * 28, n_out=10)
-
-    # the cost we minimize during training is the negative log likelihood of
-    # the model in symbolic format
-    cost = classifier.negative_log_likelihood(y)
-
-    # compiling a Theano function that computes the mistakes that are made by
-    # the model on a minibatch
-    test_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
-        givens={
-            x: test_set_x[index * batch_size: (index + 1) * batch_size],
-            y: test_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    validate_model = theano.function(
-        inputs=[index],
-        outputs=classifier.errors(y),
-        givens={
-            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    # compute the gradient of cost with respect to theta = (W,b)
-    g_W = T.grad(cost=cost, wrt=classifier.W)
-    g_b = T.grad(cost=cost, wrt=classifier.b)
-
-    # start-snippet-3
-    # specify how to update the parameters of the model as a list of
-    # (variable, update expression) pairs.
-    updates = [(classifier.W, classifier.W - learning_rate * g_W),
-               (classifier.b, classifier.b - learning_rate * g_b)]
-
-    # compiling a Theano function `train_model` that returns the cost, but in
-    # the same time updates the parameter of the model based on the rules
-    # defined in `updates`
-    train_model = theano.function(
-        inputs=[index],
-        outputs=cost,
-        updates=updates,
-        givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size],
-            y: train_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-    # end-snippet-3
-
-    ###############
-    # TRAIN MODEL #
-    ###############
-    print '... training the model'
-    # early-stopping parameters
-    patience = 5000  # look as this many examples regardless
-    patience_increase = 2  # wait this much longer when a new best is
-                                  # found
-    improvement_threshold = 0.995  # a relative improvement of this much is
-                                  # considered significant
-    validation_frequency = min(n_train_batches, patience / 2)
-                                  # go through this many
-                                  # minibatche before checking the network
-                                  # on the validation set; in this case we
-                                  # check every epoch
-
-    best_validation_loss = numpy.inf
-    test_score = 0.
-    start_time = timeit.default_timer()
-
-    done_looping = False
-    epoch = 0
-    while (epoch < n_epochs) and (not done_looping):
-        epoch = epoch + 1
-        for minibatch_index in xrange(n_train_batches):
-
-            minibatch_avg_cost = train_model(minibatch_index)
-            # iteration number
-            iter = (epoch - 1) * n_train_batches + minibatch_index
-
-            if (iter + 1) % validation_frequency == 0:
-                # compute zero-one loss on validation set
-                validation_losses = [validate_model(i)
-                                     for i in xrange(n_valid_batches)]
-                this_validation_loss = numpy.mean(validation_losses)
-
-                print(
-                    'epoch %i, minibatch %i/%i, validation error %f %%' %
-                    (
-                        epoch,
-                        minibatch_index + 1,
-                        n_train_batches,
-                        this_validation_loss * 100.
-                    )
-                )
-
-                # if we got the best validation score until now
-                if this_validation_loss < best_validation_loss:
-                    #improve patience if loss improvement is good enough
-                    if this_validation_loss < best_validation_loss *  \
-                       improvement_threshold:
-                        patience = max(patience, iter * patience_increase)
-
-                    best_validation_loss = this_validation_loss
-                    # test it on the test set
-
-                    test_losses = [test_model(i)
-                                   for i in xrange(n_test_batches)]
-                    test_score = numpy.mean(test_losses)
-
-                    print(
-                        (
-                            '     epoch %i, minibatch %i/%i, test error of'
-                            ' best model %f %%'
-                        ) %
-                        (
-                            epoch,
-                            minibatch_index + 1,
-                            n_train_batches,
-                            test_score * 100.
-                        )
-                    )
-
-                    # save the best model
-                    with open('best_model.pkl', 'w') as f:
-                        cPickle.dump(classifier, f)
-
-            if patience <= iter:
-                done_looping = True
-                break
-
-    end_time = timeit.default_timer()
-    print(
-        (
-            'Optimization complete with best validation score of %f %%,'
-            'with test performance %f %%'
-        )
-        % (best_validation_loss * 100., test_score * 100.)
-    )
-    print 'The code run for %d epochs, with %f epochs/sec' % (
-        epoch, 1. * epoch / (end_time - start_time))
-    print >> sys.stderr, ('The code for file ' +
-                          os.path.split(__file__)[1] +
-                          ' ran for %.1fs' % ((end_time - start_time)))
-    return classifier
+    predict_function = theano.function(
+            inputs=[layer0_input],
+            outputs=layer3.y_pred)
+    return predict_function
 
 
 def shared_dataset(data_xy, borrow=True):
@@ -599,9 +378,9 @@ def load_data(data_filename, label_filename):
     training_data = load_mnist_data(data_filename)
     training_labels = load_mnist_labels(label_filename)
 
-    test_set = (training_data[0:20000], training_labels[0:20000])
-    valid_set = (training_data[20000:40000], training_labels[20000:40000])
-    train_set = (training_data[40000:60000], training_labels[40000:60000])
+    test_set = (training_data[0:10000], training_labels[0:10000])
+    valid_set = (training_data[10000:20000], training_labels[10000:20000])
+    train_set = (training_data[20000:60000], training_labels[20000:60000])
 
     test_set_x, test_set_y = shared_dataset(test_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
@@ -610,19 +389,6 @@ def load_data(data_filename, label_filename):
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
             (test_set_x, test_set_y)]
     return rval
-
-
-def predict(classifier, digit):
-    """
-    digit: a 784 element vector representing an MNIST-format image of a handwritten number
-    """
-
-    # compile a predictor function
-    predict_model = theano.function(
-        inputs=[classifier.input],
-        outputs=classifier.y_pred)
-
-    return predict_model([digit])
 
 
 def load_mnist_data(filename, print_digits=False):
@@ -643,7 +409,8 @@ def load_mnist_data(filename, print_digits=False):
     digits = numpy.zeros((num_items, num_rows * num_cols))
     for i in range(num_items):
         offset = 16 + i * size
-        digits[i] = numpy.fromstring(data[offset:offset+size], dtype=numpy.uint8)
+        # Normalize MNIST pixels to the range [0,1]
+        digits[i] = (1.0 / 256) * numpy.fromstring(data[offset:offset+size], dtype=numpy.uint8)
     return digits
 
 
@@ -678,17 +445,27 @@ def print_digit(digit, cols=28):
 
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
+    epochs = int(arguments['--epochs'])
     training, validation, testing = load_data(arguments['<mnist_training>'], arguments['<mnist_labels>'])
 
-    sgd_classifier = sgd_optimization_mnist(training[0], training[1], validation[0], validation[1], testing[0], testing[1])
-    mlp_classifier = test_mlp(training[0], training[1], validation[0], validation[1], testing[0], testing[1])
+    sgd_classifier = sgd_optimization_mnist(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs)
+    mlp_classifier = test_mlp(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs)
+    lenet_classifier = evaluate_lenet5(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs, batch_size=1000, nkerns=[4,10])
+
+    with open('sgd_classifier.pkl', 'w') as f:
+        cPickle.dump(sgd_classifier, f)
+    with open('mlp_classifier.pkl', 'w') as f:
+        cPickle.dump(mlp_classifier, f)
+    with open('lenet_classifier.pkl', 'w') as f:
+        cPickle.dump(lenet_classifier, f)
 
     digits = load_mnist_data(arguments['<mnist_training>'])
     random.shuffle(digits)
     for digit in digits:
-        sgd_label = predict(sgd_classifier, digit)
-        mlp_label = predict(mlp_classifier, digit)
-        print "Logistic regression predicts {0}, MLP predicts {1}".format(sgd_label, mlp_label)
+        sgd_label = sgd_classifier(digit)
+        mlp_label = mlp_classifier(digit)
+        lenet_label = lenet_classifier(digit)
+        print "Logistic regression predicts {0}, MLP predicts {1}, lenet predicts {2}".format(sgd_label, mlp_label, lenet_label)
         print_digit(digit)
         print "Press enter to continue..."
         print
