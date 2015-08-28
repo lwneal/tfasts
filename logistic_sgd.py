@@ -1,3 +1,7 @@
+import sys
+import os
+import cPickle
+import timeit
 import numpy
 import theano
 import theano.tensor as T
@@ -310,6 +314,7 @@ def sgd_optimization_mnist(train_set_x=None, train_set_y=None,
                           ' ran for %.1fs' % ((end_time - start_time)))
     
     prediction_function = theano.function(
+            name='Logistic Regression Stochastic Gradient Descent',
             inputs=[classifier.input],
             outputs=classifier.y_pred)
     return prediction_function

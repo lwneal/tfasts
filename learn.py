@@ -48,6 +48,8 @@ from multilayer_perceptron import test_mlp
 from theano.tensor.nnet import conv
 from theano.tensor.signal import downsample
 
+BATCH_SIZE=500
+
 
 class LeNetConvPoolLayer(object):
     """Pool Layer of a convolutional network """
@@ -129,7 +131,7 @@ class LeNetConvPoolLayer(object):
 
 def evaluate_lenet5(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
                     learning_rate=0.1, n_epochs=10,
-                    nkerns=[20, 50], batch_size=500):
+                    nkerns=[20, 50], batch_size=BATCH_SIZE):
     """ Demonstrates lenet on MNIST dataset
 
     :type learning_rate: float
@@ -146,17 +148,12 @@ def evaluate_lenet5(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set
     rng = numpy.random.RandomState(23455)
 
     # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0]
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0]
-    n_train_batches /= batch_size
-    n_valid_batches /= batch_size
-    n_test_batches /= batch_size
+    n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
+    n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
-
-    # start-snippet-1
     x = T.matrix('x')   # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
                         # [int] labels
@@ -182,6 +179,7 @@ def evaluate_lenet5(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set
         filter_shape=(nkerns[0], 1, 5, 5),
         poolsize=(2, 2)
     )
+
 
     # Construct the second convolutional pooling layer
     # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
@@ -342,7 +340,8 @@ def evaluate_lenet5(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
     predict_function = theano.function(
-            inputs=[layer0_input],
+            name="Simplified LeNet5",
+            inputs=[x],
             outputs=layer3.y_pred)
     return predict_function
 
@@ -450,7 +449,7 @@ if __name__ == '__main__':
 
     sgd_classifier = sgd_optimization_mnist(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs)
     mlp_classifier = test_mlp(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs)
-    lenet_classifier = evaluate_lenet5(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs, batch_size=1000, nkerns=[4,10])
+    lenet_classifier = evaluate_lenet5(training[0], training[1], validation[0], validation[1], testing[0], testing[1], n_epochs=epochs, nkerns=[4,10])
 
     with open('sgd_classifier.pkl', 'w') as f:
         cPickle.dump(sgd_classifier, f)
@@ -462,9 +461,13 @@ if __name__ == '__main__':
     digits = load_mnist_data(arguments['<mnist_training>'])
     random.shuffle(digits)
     for digit in digits:
-        sgd_label = sgd_classifier(digit)
-        mlp_label = mlp_classifier(digit)
-        lenet_label = lenet_classifier(digit)
+        sgd_label = sgd_classifier([digit])
+        mlp_label = mlp_classifier([digit])
+        def underp_lenet(digit):
+            derp = numpy.concatenate([digit] * BATCH_SIZE)
+            return [lenet_classifier([derp])[0]]
+        lenet_label = underp_lenet(digit)
+
         print "Logistic regression predicts {0}, MLP predicts {1}, lenet predicts {2}".format(sgd_label, mlp_label, lenet_label)
         print_digit(digit)
         print "Press enter to continue..."
