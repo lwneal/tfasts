@@ -65,18 +65,18 @@ def demonstrate_classifier(audio_dir, classifier):
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
     if arguments['<audio_dir>']:
-      audio_dir = os.path.expanduser(arguments['<audio_dir>'])
-      label_dir = os.path.expanduser(arguments['<label_dir>'])
-      training, validation, testing = load_data(audio_dir, label_dir)
-      mlp_classifier = test_mlp(training[0], training[1],
-          validation[0], validation[1],
-          testing[0], testing[1],
-          n_epochs=100, n_in=256, n_hidden=3000)
-      with open('birds_mlp_classifier.pkl', 'w') as f:
-        cPickle.dump(mlp_classifier, f)
+        audio_dir = os.path.expanduser(arguments['<audio_dir>'])
+        label_dir = os.path.expanduser(arguments['<label_dir>'])
+        training, validation, testing = load_data(audio_dir, label_dir)
+        mlp_classifier = test_mlp(training[0], training[1],
+            validation[0], validation[1],
+            testing[0], testing[1],
+            n_epochs=100, n_in=256, n_hidden=3000)
+        with open('birds_mlp_classifier.pkl', 'w') as f:
+            cPickle.dump(mlp_classifier, f)
     else:
-      with open('birds_mlp_classifier.pkl') as f:
-        mlp_classifier = cPickle.load(f)
+        with open('birds_mlp_classifier.pkl') as f:
+            mlp_classifier = cPickle.load(f)
 
     if arguments['--unlabeled_audio_dir']:
-      demonstrate_classifier(arguments['--unlabeled_audio_dir'], mlp_classifier)
+        demonstrate_classifier(arguments['--unlabeled_audio_dir'], mlp_classifier)
