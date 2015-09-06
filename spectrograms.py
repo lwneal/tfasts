@@ -79,7 +79,7 @@ def extract_examples(audio_dir, label_dir):
     label_filenames = [f for f in os.listdir(label_dir) if f.endswith('.bmp')]
     examples = []
     labels = []
-    for filename in label_filenames[:30]:
+    for filename in label_filenames:
         label_filepath = os.path.join(label_dir, filename)
         audio_filepath = os.path.join(audio_dir, filename.replace('bmp', 'wav'))
         x, y = extract_example(audio_filepath, label_filepath)
