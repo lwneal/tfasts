@@ -388,8 +388,8 @@ if __name__ == '__main__':
             derp = numpy.concatenate([digit] * BATCH_SIZE)
             return [lenet_classifier([derp])[0]]
         lenet_label = underp_lenet(digit)
-	if sgd_label == mlp_label == lenet_label:
-	  continue
+        if sgd_label == mlp_label == lenet_label:
+             continue
 
         print "Logistic regression predicts {0}, MLP predicts {1}, lenet predicts {2}".format(sgd_label, mlp_label, lenet_label)
         print_digit(digit)

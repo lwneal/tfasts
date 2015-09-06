@@ -1,5 +1,5 @@
 """
-Usage: 
+Usage:
   birds.py [<audio_dir> <label_dir>] [--unlabeled_audio_dir=DIR]
 
 Options:
@@ -20,6 +20,7 @@ from PIL import Image
 from learn import shared_dataset
 import spectrograms
 from spectrograms import extract_examples, load_wav, make_spectrogram
+from spectrograms import PADDING
 
 from multilayer_perceptron import test_mlp
 
@@ -51,7 +52,7 @@ def demonstrate_classifier(audio_dir, classifier):
         samples = load_wav(os.path.join(audio_dir, filename))
         spec = make_spectrogram(samples)
         label = numpy.zeros(spec.shape)
-        for col in range(spectrograms.PADDING, spec.shape[1] - spectrograms.PADDING):
+        for col in range(PADDING, spec.shape[1] - PADDING):
             input_x = spec[:, col]
             output_y = classifier([input_x])[0]
             if output_y == 0:
