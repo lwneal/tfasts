@@ -44,15 +44,18 @@ def whitening_filter(spec, sample_pc=0.20):
     _, noise_idxes = zip(*cols[:cutoff_idx])
 
     # Average them and call it a 'noise profile'
-    noise_profile = numpy.zeros(height)
+    noise_profile = numpy.ones(height)
     for idx in noise_idxes:
         noise_profile += spec[:,idx]
     noise_profile *= (1.0 / width)
 
-    # Subtract the noise profile from all columns
+    # Divide each column by its average noise
     for col in range(width):
         for row in range(height):
-            spec[row, col] = max(.0, spec[row, col] - noise_profile[row])
+            spec[row, col] /= noise_profile[row]
+
+    # Heuristic: Also sqrt the spectrogram for visibility
+    spec = numpy.power(spec, 0.5)
     return spec
 
 
