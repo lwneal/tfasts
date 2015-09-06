@@ -25,14 +25,35 @@ def load_wav(filename):
 
 def make_spectrogram(samples, desired_height=256):
     spec = signal.spectrogram(samples, nperseg=512, noverlap=128, window='hamming')
-    # Zero out low frequencies
+    # Zero out low frequencies, remove zeroth element
     spec[2][:8] = 0
     data = spec[2][1:]
-    # Sqrt the spectrogram for visibility
-    data = numpy.power(data, 0.5)
+    # Apply filtering
+    data = whitening_filter(data)
     # Normalize the spectrogram
     data *= 255.0 / data.max()
     return data
+
+
+def whitening_filter(spec, sample_pc=0.20):
+    # Find the quietest 20% of frames
+    height, width = spec.shape
+    loudness = [sum(col) for col in spec.transpose()]
+    cols = sorted(zip(loudness, range(width)))
+    cutoff_idx = int(width * sample_pc)
+    _, noise_idxes = zip(*cols[:cutoff_idx])
+
+    # Average them and call it a 'noise profile'
+    noise_profile = numpy.zeros(height)
+    for idx in noise_idxes:
+        noise_profile += spec[:,idx]
+    noise_profile *= (1.0 / width)
+
+    # Subtract the noise profile from all columns
+    for col in range(width):
+        for row in range(height):
+            spec[row, col] = max(.0, spec[row, col] - noise_profile[row])
+    return spec
 
 
 def load_image(filename):
