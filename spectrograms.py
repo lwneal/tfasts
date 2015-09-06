@@ -25,6 +25,8 @@ def load_wav(filename):
 
 def make_spectrogram(samples, desired_height=256):
   spec = signal.spectrogram(samples, nperseg=512, noverlap=128, window='hamming')
+  # Zero out low frequencies
+  spec[2][:8] = 0
   data = spec[2][1:]
   # Sqrt the spectrogram for visibility
   data = numpy.power(data, 0.5)
@@ -55,7 +57,7 @@ def extract_examples(audio_dir, label_dir):
   label_filenames = [f for f in os.listdir(label_dir) if f.endswith('.bmp')]
   examples = []
   labels = []
-  for filename in label_filenames:
+  for filename in label_filenames[:30]:
     label_filepath = os.path.join(label_dir, filename)
     audio_filepath = os.path.join(audio_dir, filename.replace('bmp', 'wav'))
     x, y = extract_example(audio_filepath, label_filepath)
