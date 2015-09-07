@@ -1,11 +1,12 @@
 """
 Usage:
-  birds.py [<audio_dir> <label_dir>] [--unlabeled_audio_dir=DIR]
+  birds.py [<audio_dir> <label_dir>] [--unlabeled_audio_dir=DIR] [--file-count=COUNT]
 
 Options:
   <audio_dir>       Directory containing .wav audio files
   <label_dir>       Directory containing .bmp binary spectrogram masks
   DIR               Directory containing .wav audio files that are not labeled
+  COUNT             Maximum number of files to train on
 
 Ensure .wav files are 16-bit mono PCM at 16khz.
 Ensure .bmp have 256 pixels height
@@ -25,8 +26,8 @@ from spectrograms import PADDING
 from multilayer_perceptron import test_mlp
 
 
-def load_data(audio_dir, label_dir):
-    training_data, training_labels = extract_examples(audio_dir, label_dir)
+def load_data(audio_dir, label_dir, file_count=None):
+    training_data, training_labels = extract_examples(audio_dir, label_dir, file_count)
     data = zip(training_data, training_labels)
     random.shuffle(data)
     training_data, training_labels = zip(*data)
@@ -68,7 +69,8 @@ if __name__ == '__main__':
     if arguments['<audio_dir>']:
         audio_dir = os.path.expanduser(arguments['<audio_dir>'])
         label_dir = os.path.expanduser(arguments['<label_dir>'])
-        training, validation, testing = load_data(audio_dir, label_dir)
+        file_count = int(arguments['--file-count'])
+        training, validation, testing = load_data(audio_dir, label_dir, file_count)
         mlp_classifier = test_mlp(training[0], training[1],
             validation[0], validation[1],
             testing[0], testing[1],

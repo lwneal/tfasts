@@ -1,3 +1,4 @@
+import random
 import os
 import struct
 import math
@@ -77,11 +78,14 @@ def extract_example(audio_filepath, label_filepath):
     return x, y
 
 
-def extract_examples(audio_dir, label_dir):
+def extract_examples(audio_dir, label_dir, file_count=None):
     # For each label file, load it and the corresponding audio
     label_filenames = [f for f in os.listdir(label_dir) if f.endswith('.bmp')]
     examples = []
     labels = []
+    if file_count:
+        random.shuffle(label_filenames)
+        label_filenames = label_filenames[:file_count]
     for filename in label_filenames:
         label_filepath = os.path.join(label_dir, filename)
         audio_filepath = os.path.join(audio_dir, filename.replace('bmp', 'wav'))
