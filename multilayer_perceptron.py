@@ -184,7 +184,7 @@ class MLP(object):
 
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
              learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             batch_size=20, n_hidden=500, n_in=28*28):
+             batch_size=20, n_hidden=500, n_in=28*28, n_out=10):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -220,7 +220,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix('x')  # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of
+    y = T.matrix('y')  # the labels are presented as 1D vector of
                         # [int] labels
 
     rng = numpy.random.RandomState(1234)
@@ -231,7 +231,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
         input=x,
         n_in=n_in,
         n_hidden=n_hidden,
-        n_out=10
+        n_out=n_out
     )
 
     # start-snippet-4
@@ -302,10 +302,10 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     print '... training'
 
     # early-stopping parameters
-    patience = 10000  # look as this many examples regardless
-    patience_increase = 2  # wait this much longer when a new best is
+    patience = 100000  # look as this many examples regardless
+    patience_increase = 10  # wait this much longer when a new best is
                            # found
-    improvement_threshold = 0.995  # a relative improvement of this much is
+    improvement_threshold = 0.9995  # a relative improvement of this much is
                                    # considered significant
     validation_frequency = min(n_train_batches, patience / 2)
                                   # go through this many

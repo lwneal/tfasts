@@ -5,6 +5,7 @@ import math
 import wave
 
 import numpy
+import scipy
 from PIL import Image
 from scipy import signal
 
@@ -32,7 +33,7 @@ def make_spectrogram(samples, desired_height=256):
     # Apply filtering
     data = whitening_filter(data)
     # Normalize the spectrogram
-    data *= 255.0 / data.max()
+    data *= 1.0 / data.max()
     return data
 
 
@@ -69,12 +70,8 @@ PADDING = 8
 def extract_example(audio_filepath, label_filepath):
     label = load_image(label_filepath)
     spec = make_spectrogram(load_wav(audio_filepath))
-    x = []
-    y = []
-    for spec_idx in range(PADDING, spec.shape[1] - PADDING):
-        label_idx = 1.0 * label.shape[1] / spec.shape[1]
-        x.append(spec[:, spec_idx])
-        y.append(label[:, label_idx])
+    x = spec.transpose()
+    y = scipy.misc.imresize(label.transpose(), x.shape)
     return x, y
 
 
@@ -94,4 +91,7 @@ def extract_examples(audio_dir, label_dir, file_count=None):
         labels.extend(y)
     # Numpy some arrays around?
     examples = numpy.array(examples)
-    return examples, labels
+    print "Examples mean {0} max {1}".format(numpy.mean(examples), numpy.max(examples))
+    labels = numpy.array(labels)
+    return examples, examples
+    #return examples, labels
