@@ -92,7 +92,7 @@ class LogisticRegression(object):
               the learning rate is less dependent on the batch size
         """
         n_idx = T.arange(y.shape[0])
-        difference = T.abs_(self.p_y_given_x - y)[n_idx]
+        difference = T.square(self.p_y_given_x - y)[n_idx]
         #difference = theano.printing.Print('difference')(difference)
         half_mean = T.mean(difference, axis=1)
         #half_mean = theano.printing.Print('half_mean')(half_mean)

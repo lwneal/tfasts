@@ -93,7 +93,7 @@ if __name__ == '__main__':
         mlp_classifier = test_mlp(training[0], training[1],
             validation[0], validation[1],
             testing[0], testing[1],
-            n_epochs=1000, n_in=256, n_out=256, n_hidden=256, learning_rate=1.0)
+            n_epochs=9000, n_in=256, n_out=256, n_hidden=256, learning_rate=.3)
         with open('birds_mlp_classifier.pkl', 'w') as f:
             cPickle.dump(mlp_classifier, f)
     else:

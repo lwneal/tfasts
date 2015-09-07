@@ -302,10 +302,10 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     print '... training'
 
     # early-stopping parameters
-    patience = 100000  # look as this many examples regardless
+    patience = 200000  # look as this many examples regardless
     patience_increase = 10  # wait this much longer when a new best is
                            # found
-    improvement_threshold = 0.9995  # a relative improvement of this much is
+    improvement_threshold = 0.9998  # a relative improvement of this much is
                                    # considered significant
     validation_frequency = min(n_train_batches, patience / 2)
                                   # go through this many

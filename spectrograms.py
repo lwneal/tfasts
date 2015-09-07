@@ -63,7 +63,11 @@ def whitening_filter(spec, sample_pc=0.20):
 
 def load_image(filename):
     img = Image.open(filename)
-    return numpy.array(img.getdata(), numpy.uint8).reshape(img.size[1], img.size[0])
+    data = numpy.array(img.getdata(), numpy.uint8).reshape(img.size[1], img.size[0])
+    for row in range(data.shape[0]):
+      for col in range(data.shape[1]):
+        data[row][col] = 1.0 if data[row][col] > 0 else 0
+    return data
 
 
 PADDING = 8
@@ -87,11 +91,14 @@ def extract_examples(audio_dir, label_dir, file_count=None):
         label_filepath = os.path.join(label_dir, filename)
         audio_filepath = os.path.join(audio_dir, filename.replace('bmp', 'wav'))
         x, y = extract_example(audio_filepath, label_filepath)
+        if y.min() < 0.0 or y.max() > 1.0:
+          print "bad labels out of valid range"
+          import pdb; pdb.set_trace()
         examples.extend(x)
         labels.extend(y)
     # Numpy some arrays around?
     examples = numpy.array(examples)
-    print "Examples mean {0} max {1}".format(numpy.mean(examples), numpy.max(examples))
     labels = numpy.array(labels)
-    return examples, examples
-    #return examples, labels
+    print "Examples mean {0} max {1}".format(numpy.mean(examples), numpy.max(examples))
+    print "Labels mean {0} max {1}".format(numpy.mean(labels), numpy.max(labels))
+    return examples, labels
