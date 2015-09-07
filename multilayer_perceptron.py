@@ -220,8 +220,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix('x')  # the data is presented as rasterized images
-    y = T.matrix('y')  # the labels are presented as 1D vector of
-                        # [int] labels
+    y = T.matrix('y')  # Labels are masks over the spectrogram
 
     rng = numpy.random.RandomState(1234)
 

@@ -53,7 +53,10 @@ def demonstrate_classifier(audio_dir, classifier):
         spec = make_spectrogram(samples)
         label = numpy.zeros(spec.shape)
         for col in range(PADDING, spec.shape[1] - PADDING):
-            input_x = spec[:, col]
+            input_list = []
+            for offset in [-2, -1, 0, 1, 2]:
+                input_list.append(spec[:, col + offset])
+            input_x = numpy.concatenate(input_list, axis=1)
             label[:, col] = classifier([input_x])[0]
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
@@ -93,10 +96,11 @@ if __name__ == '__main__':
         mlp_classifier = test_mlp(training[0], training[1],
             validation[0], validation[1],
             testing[0], testing[1],
-            n_epochs=9000, n_in=256, n_out=256, n_hidden=256, learning_rate=.3)
+            n_epochs=9000, n_in=5 * 256, n_out=256, n_hidden=256, learning_rate=.3)
         with open('birds_mlp_classifier.pkl', 'w') as f:
             cPickle.dump(mlp_classifier, f)
     else:
+        print("Loading classifier from file...")
         with open('birds_mlp_classifier.pkl') as f:
             mlp_classifier = cPickle.load(f)
 
