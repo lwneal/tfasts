@@ -1,13 +1,15 @@
 """
 Usage:
-  birds.py [<audio_dir> <label_dir>] [--unlabeled_audio_dir=DIR] [--file-count=COUNT] [--save-data=SAVENAME] [--load-data=LOADNAME]
+  birds.py --wavs=DIR --labels=DIR [--unlabeled=DIR] [--file-count=COUNT] [--save-data=NAME] [--load-data=NAME] [--epochs=EPOCHS]
 
 Options:
-  <audio_dir>       Directory containing .wav audio files
-  <label_dir>       Directory containing .bmp binary spectrogram masks
-  DIR               Directory containing .wav audio files that are not labeled
-  COUNT             Maximum number of files to train on
-  
+  --wavs=DIR               Directory containing training .wav files
+  --labels=DIR             Directory containing .bmp binary spectrogram masks
+  --unlabeled=DIR          Directory containing testing .wav files
+  --file-count=COUNT       Max number of inputs to read
+  --save-data=NAME         Location to save classifier
+  --load-data=NAME         Location to read previously-trained classifier
+  --epochs=EPOCHS          Number of epochs to run [default: 10]
 
 Ensure .wav files are 16-bit mono PCM at 16khz.
 Ensure .bmp have 256 pixels height
@@ -54,7 +56,7 @@ def demonstrate_classifier(audio_dir, classifier):
         label = numpy.zeros(spec.shape)
         for col in range(PADDING, spec.shape[1] - PADDING):
             input_list = []
-            for offset in [-2, -1, 0, 1, 2]:
+            for offset in [-3, -2, -1, 0, 1, 2, 3]:
                 input_list.append(spec[:, col + offset])
             input_x = numpy.concatenate(input_list, axis=1)
             label[:, col] = classifier([input_x])[0]
@@ -66,9 +68,10 @@ def demonstrate_classifier(audio_dir, classifier):
 
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
-    if arguments['<audio_dir>']:
-        audio_dir = os.path.expanduser(arguments['<audio_dir>'])
-        label_dir = os.path.expanduser(arguments['<label_dir>'])
+    num_epochs = int(arguments['--epochs'])
+    if arguments['--wavs']:
+        audio_dir = os.path.expanduser(arguments['--wavs'])
+        label_dir = os.path.expanduser(arguments['--labels'])
         file_count = int(arguments['--file-count']) if arguments['--file-count'] else None
         if arguments['--load-data']:
             fname = arguments['--load-data']
@@ -96,7 +99,7 @@ if __name__ == '__main__':
         mlp_classifier = test_mlp(training[0], training[1],
             validation[0], validation[1],
             testing[0], testing[1],
-            n_epochs=9000, n_in=5 * 256, n_out=256, n_hidden=256, learning_rate=.3)
+            n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=3.0)
         with open('birds_mlp_classifier.pkl', 'w') as f:
             cPickle.dump(mlp_classifier, f)
     else:
@@ -104,5 +107,5 @@ if __name__ == '__main__':
         with open('birds_mlp_classifier.pkl') as f:
             mlp_classifier = cPickle.load(f)
 
-    if arguments['--unlabeled_audio_dir']:
-        demonstrate_classifier(arguments['--unlabeled_audio_dir'], mlp_classifier)
+    if arguments['--unlabeled']:
+        demonstrate_classifier(arguments['--unlabeled'], mlp_classifier)
