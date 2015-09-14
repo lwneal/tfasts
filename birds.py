@@ -15,6 +15,7 @@ Ensure .wav files are 16-bit mono PCM at 16khz.
 Ensure .bmp have 256 pixels height
 """
 import os
+from os.path import expanduser
 import docopt
 import random
 import cPickle
@@ -62,50 +63,36 @@ def demonstrate_classifier(audio_dir, classifier):
             label[:, col] = classifier([input_x])[0]
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
-        Image.fromarray(comparison).show()
-        time.sleep(1)
+        #Image.fromarray(comparison).show()
+        img = Image.fromarray(label * 255).convert('RGB')
+        img.save('output/' + filename + '.png')
+
+
+def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
+    training, validation, testing = load_data(wav_dir, label_dir, file_count)
+    mlp_classifier = test_mlp(training[0], training[1],
+        validation[0], validation[1],
+        testing[0], testing[1],
+        n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=3.0)
+    with open('birds_mlp_classifier.pkl', 'w') as f:
+        cPickle.dump(mlp_classifier, f)
+    return mlp_classifier
 
 
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
     num_epochs = int(arguments['--epochs'])
-    if arguments['--wavs']:
-        audio_dir = os.path.expanduser(arguments['--wavs'])
-        label_dir = os.path.expanduser(arguments['--labels'])
-        file_count = int(arguments['--file-count']) if arguments['--file-count'] else None
-        if arguments['--load-data']:
-            fname = arguments['--load-data']
-            print("Loading data with name {0}".format(fname))
-            with open(fname + 'training.pkl') as f:
-                training = cPickle.load(f)
-            with open(fname + 'validation.pkl') as f:
-                validation = cPickle.load(f)
-            with open(fname + 'testing.pkl') as f:
-                testing = cPickle.load(f)
-            print("Finished loading data")
-        else:
-            training, validation, testing = load_data(audio_dir, label_dir, file_count)
-            if arguments['--save-data']:
-                fname = arguments['--save-data']
-                print("Saving data with name {0}".format(fname))
-                with open(fname + 'training.pkl', 'w') as f:
-                    cPickle.dump(training, f)
-                with open(fname + 'validation.pkl', 'w') as f:
-                    cPickle.dump(validation, f)
-                with open(fname + 'testing.pkl', 'w') as f:
-                    cPickle.dump(testing, f)
-                print("Finished saving data")
+    wav_dir = expanduser(arguments['--wavs'])
+    labels = expanduser(arguments['--labels'])
+    unlabeled_dir = expanduser(arguments['--unlabeled']) if arguments['--unlabeled'] else None
+    file_count = int(arguments['--file-count']) if arguments['--file-count'] else None
 
-        mlp_classifier = test_mlp(training[0], training[1],
-            validation[0], validation[1],
-            testing[0], testing[1],
-            n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=3.0)
-        with open('birds_mlp_classifier.pkl', 'w') as f:
-            cPickle.dump(mlp_classifier, f)
+    if wav_dir:
+        mlp_classifier = train_classifier(wav_dir, labels, num_epochs, file_count)
     else:
         print("Loading classifier from file...")
         with open('birds_mlp_classifier.pkl') as f:
             mlp_classifier = cPickle.load(f)
 
-    if arguments['--unlabeled']:
+    if unlabeled_dir:
         demonstrate_classifier(arguments['--unlabeled'], mlp_classifier)
