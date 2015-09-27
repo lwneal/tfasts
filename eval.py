@@ -46,13 +46,14 @@ def evaluate(output_dir, label_files, threshold):
         false_pos += fp
         true_neg += tn
         false_neg += fn
-    #print "Total:"
-    #print "True positive: {0}".format(true_pos)
-    #print "False positive: {0}".format(false_pos)
-    #print "True negative: {0}".format(true_neg)
-    #print "False negative: {0}".format(false_neg)
-    recall = 1.0 * true_pos / (true_pos + false_neg)
-    precision = 1.0 * true_neg / (true_neg + false_pos)
+        recall = 1.0 * true_pos / (0.1 + true_pos + false_neg)
+        precision = 1.0 * true_neg / (0.1 + true_neg + false_pos)
+        print "Recall {} precision {}".format(recall, precision)
+    print "Total:"
+    print "True positive: {0}".format(true_pos)
+    print "False positive: {0}".format(false_pos)
+    print "True negative: {0}".format(true_neg)
+    print "False negative: {0}".format(false_neg)
     return recall, precision
 
 
@@ -60,8 +61,9 @@ def ls(dir):
     return [os.path.join(dir, f) for f in os.listdir(dir)]
 
 if __name__ == '__main__':
+    output_dir = 'output/'
     label_files = ls('setA/labels') + ls('setB/labels')
     for i in range(10):
-        threshold =  (i) / 20.0
-        recall, precision = evaluate(label_files, threshold * 255.0)
+        threshold =  255.0 * (i) / 20.0
+        recall, precision = evaluate(output_dir, label_files, threshold * 255.0)
         print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)

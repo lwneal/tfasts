@@ -21,7 +21,7 @@ def load_wav(filename):
         samples.extend(sample)
     freq = wavfile.getparams()[2]
     len_sec = 1.0 * len(samples) / freq
-    print "Loaded audio file length {0} seconds".format(len_sec)
+    print "Loaded {} length {} seconds".format(filename, len_sec)
     return samples
 
 
