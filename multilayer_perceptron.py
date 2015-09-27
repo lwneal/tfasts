@@ -126,29 +126,34 @@ class MLP(object):
         which the labels lie
 
         """
+        def relu(x):
+          return T.switch(x < 0, 0, x)
 
-        # Since we are dealing with a one hidden layer MLP, this will translate
-        # into a HiddenLayer with a tanh activation function connected to the
-        # LogisticRegression layer; the activation function can be replaced by
-        # sigmoid or any other nonlinear function
+
         self.hiddenLayer = HiddenLayer(
             rng=rng,
             input=input,
             n_in=n_in,
             n_out=n_hidden,
-            activation=T.nnet.sigmoid
+            activation=relu
         )
 
-        # The logistic regression layer gets as input the hidden units
-        # of the hidden layer
-        self.logRegressionLayer = LogisticRegression(
+        # LARRY: Let's add another hidden layer!
+        self.otherHiddenLayer = HiddenLayer(
+            rng=rng,
             input=self.hiddenLayer.output,
+            n_in=n_hidden,
+            n_out=n_hidden,
+            activation=relu
+        )
+
+        self.logRegressionLayer = LogisticRegression(
+            input=self.otherHiddenLayer.output,
             n_in=n_hidden,
             n_out=n_out
         )
-        # end-snippet-2 start-snippet-3
-        # L1 norm ; one regularization option is to enforce L1 norm to
-        # be small
+
+        # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = (
             abs(self.hiddenLayer.W).sum()
             + abs(self.logRegressionLayer.W).sum()
