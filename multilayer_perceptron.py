@@ -384,7 +384,7 @@ def train_minibatch(
                              in xrange(n_valid_batches)]
         this_validation_loss = numpy.mean(validation_losses)
 
-        print('epoch %i, minibatch %i/%i, validation error %f %%' %
+        print('epoch %i, minibatch %i/%i, validation error %f ' %
             (epoch, minibatch_index + 1, n_train_batches, this_validation_loss * 100.))
 
         # if we got the best validation score until now
@@ -401,6 +401,6 @@ def train_minibatch(
             test_score = numpy.mean(test_losses)
 
             print(('     epoch %i, minibatch %i/%i, test error of '
-                   'best model %f %%') %
+                   'best model %f ') %
                   (epoch, minibatch_index + 1, n_train_batches, test_score * 100.))
     return best_validation_loss, best_iter, test_score, patience

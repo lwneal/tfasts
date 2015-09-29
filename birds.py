@@ -40,10 +40,12 @@ def load_data(audio_dir, label_dir, file_count=None):
     #training_labels = [1 if any(l) else 0 for l in training_labels]
     assert len(training_data) == len(training_labels)
 
-    idx = len(training_data) / 3
-    rval = [(training_data[:idx], training_labels[:idx]), 
-            (training_data[idx: 2*idx], training_labels[idx:2*idx]),
-            (training_data[2*idx:], training_labels[2*idx:])]
+    # Split into 80% training, 10% test, 10% validation
+    lsplit = int(len(training_data) * 0.8)
+    rsplit = int(len(training_data) * 0.9)
+    rval = [(training_data[:lsplit], training_labels[:lsplit]), 
+            (training_data[lsplit:rsplit], training_labels[lsplit:rsplit]),
+            (training_data[rsplit:], training_labels[rsplit:])]
 
     def shared(data):
       return theano.shared(numpy.asarray(data, dtype=theano.config.floatX), borrow=True)
@@ -82,6 +84,7 @@ def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
     num_epochs = int(arguments['--epochs'])
+
     wav_dir = expanduser(arguments['--wavs'])
     labels = expanduser(arguments['--labels'])
     unlabeled_dir = expanduser(arguments['--unlabeled']) if arguments['--unlabeled'] else None

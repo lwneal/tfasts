@@ -1,3 +1,4 @@
+import timeit
 import random
 import os
 import struct
@@ -72,8 +73,13 @@ def load_image(filename):
 
 PADDING = 8
 def extract_example(audio_filepath, label_filepath):
+    # Takes 450ms loading 936x256 15-second from SSD on my macbook
     label = load_image(label_filepath)
-    spec = make_spectrogram(load_wav(audio_filepath))
+    # Takes 650ms
+    wav = load_wav(audio_filepath)
+    # Takes 100ms
+    spec = make_spectrogram(wav)
+
     x_list = []
     for offset in [-3, -2, -1, 0, 1, 2, 3]:
         x_list.append(numpy.roll(spec.transpose(), offset, axis=0))
