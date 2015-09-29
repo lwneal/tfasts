@@ -66,5 +66,5 @@ if __name__ == '__main__':
     label_files = ls('setA/labels') + ls('setB/labels')
     for i in range(10):
         threshold =  (i) / 20.0
-        recall, precision = evaluate(output_dir, label_files, threshold * 255.0)
+        recall, precision = evaluate(output_dir, label_files, threshold)
         print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
