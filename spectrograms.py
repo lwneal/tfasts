@@ -84,6 +84,7 @@ def extract_example(audio_filepath, label_filepath):
     for offset in [-3, -2, -1, 0, 1, 2, 3]:
         x_list.append(numpy.roll(spec.transpose(), offset, axis=0))
     x = numpy.concatenate(x_list, axis=1)
+    assert x[0][0] == x[0][256] == x[0][512] ==0
     y = scipy.misc.imresize(label.transpose(), (x.shape[0], 256))
     return x, y
 

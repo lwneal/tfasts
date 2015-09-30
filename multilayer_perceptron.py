@@ -135,7 +135,6 @@ class MLP(object):
         def relu(x):
           return T.switch(x < 0, 0, x)
 
-
         self.hiddenLayer = HiddenLayer(
             rng=rng,
             input=input,
@@ -162,6 +161,7 @@ class MLP(object):
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = (
             abs(self.hiddenLayer.W).sum()
+            + abs(self.otherHiddenLayer.W).sum()
             + abs(self.logRegressionLayer.W).sum()
         )
 
@@ -169,6 +169,7 @@ class MLP(object):
         # square of L2 norm to be small
         self.L2_sqr = (
             (self.hiddenLayer.W ** 2).sum()
+            + (self.otherHiddenLayer.W ** 2).sum()
             + (self.logRegressionLayer.W ** 2).sum()
         )
 
@@ -183,7 +184,7 @@ class MLP(object):
 
         # the parameters of the model are the parameters of the two layer it is
         # made out of
-        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
+        self.params = self.hiddenLayer.params + self.otherHiddenLayer.params + self.logRegressionLayer.params
         # end-snippet-3
 
         # keep track of model input
@@ -194,7 +195,7 @@ class MLP(object):
 
 
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
-             learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+             learning_rate=0.01, L1_reg=0.0001, L2_reg=0.0001, n_epochs=1000,
              batch_size=20, n_hidden=500, n_in=28*28, n_out=10):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
@@ -337,14 +338,18 @@ def train_models(
     best_validation_loss = numpy.inf
     best_iter = 0
     test_score = 0.
-    patience = 200000  # look as this many examples regardless
+    patience = 20000  # look as this many examples regardless
     epoch = 0
     while epoch < n_epochs:
-        best_validation_loss, best_iter, test_score, patience, finished_early = learn_epoch(
-            train_model, validate_model, test_model,
-            epoch, n_train_batches, n_valid_batches, n_test_batches,
-            best_validation_loss, best_iter, test_score, patience)
-        epoch += 1
+        try:
+            best_validation_loss, best_iter, test_score, patience, finished_early = learn_epoch(
+                train_model, validate_model, test_model,
+                epoch, n_train_batches, n_valid_batches, n_test_batches,
+                best_validation_loss, best_iter, test_score, patience)
+            epoch += 1
+        except KeyboardInterrupt as e:
+            print e
+            finished_early = True
         if finished_early: 
             print "Ran out of patience, finishing early"
             break

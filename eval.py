@@ -3,27 +3,16 @@ import os
 
 from PIL import Image
 import numpy
+import scipy.misc
 
+# Per-pixel metric
 def count_labels(label, prediction, threshold):
-    tp = 0
-    fp = 0
-    tn = 0
-    fn = 0
-    height_factor = 1.0 * label.shape[0] / prediction.shape[0]
-    width_factor = 1.0 * label.shape[1] / prediction.shape[1]
-    for row in range(len(label)):
-        for col in range(len(label)):
-            l = label[row, col]
-            p = prediction[int(row * height_factor), int(col * width_factor)]
-            if l > threshold and p > threshold:
-                tp += 1
-            elif l > threshold and not p > threshold:
-                fn += 1
-            elif not l > threshold and p > threshold:
-                fp += 1
-            elif not l > threshold and not p > threshold:
-                tn += 1
-    #print "tp/fp/tn/fn: {0} {1} {2} {3}".format(tp, fp, tn, fn)
+    assert label.shape == prediction.shape
+
+    tp = len(label[numpy.where((label > 0) & (prediction > threshold))])
+    fp = len(label[numpy.where((label == 0) & (prediction > threshold))])
+    tn = len(label[numpy.where((label == 0) & (prediction <= threshold))])
+    fn = len(label[numpy.where((label > 0) & (prediction <= threshold))])
     return tp, fp, tn, fn
 
 
@@ -42,7 +31,8 @@ def evaluate(output_dir, label_files, threshold):
             continue
         prediction_image = Image.open(prediction_filename)
         prediction_data = numpy.asarray(prediction_image)[:,:,0]
-        tp, fp, tn, fn = count_labels(label_data, prediction_data, threshold)
+        prediction = scipy.misc.imresize(prediction_data, label_data.shape)
+        tp, fp, tn, fn = count_labels(label_data, prediction, threshold)
         true_pos += tp
         false_pos += fp
         true_neg += tn
@@ -64,7 +54,6 @@ def ls(dir):
 if __name__ == '__main__':
     output_dir = sys.argv[1]
     label_files = ls('setA/labels') + ls('setB/labels')
-    for i in range(10):
-        threshold =  (i) / 20.0
+    for threshold in numpy.arange(0, 25, 1.0):
         recall, precision = evaluate(output_dir, label_files, threshold)
         print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
