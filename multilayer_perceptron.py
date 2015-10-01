@@ -195,7 +195,7 @@ class MLP(object):
 
 
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
-             learning_rate=0.01, L1_reg=0.0001, L2_reg=0.0001, n_epochs=1000,
+             learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
              batch_size=20, n_hidden=500, n_in=28*28, n_out=10):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer

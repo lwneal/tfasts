@@ -76,7 +76,7 @@ def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
     mlp_classifier = test_mlp(training[0], training[1],
         validation[0], validation[1],
         testing[0], testing[1],
-        n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=3.0, batch_size=100)
+        n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=1.0, batch_size=100)
     with open('birds_mlp_classifier.pkl', 'w') as f:
         cPickle.dump(mlp_classifier, f)
     return mlp_classifier

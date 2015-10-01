@@ -76,32 +76,8 @@ class LogisticRegression(object):
         self.input = input
 
     def negative_log_likelihood(self, y):
-        """Return the mean of the negative log-likelihood of the prediction
-        of this model under a given target distribution.
-
-        .. math::
-
-            \frac{1}{|\mathcal{D}|} \mathcal{L} (\theta=\{W,b\}, \mathcal{D}) =
-            \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|}
-                \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
-            \ell (\theta=\{W,b\}, \mathcal{D})
-
-        :type y: theano.tensor.TensorType
-        :param y: corresponds to a vector that gives for each example the
-                  correct label
-
-        Note: we use the mean instead of the sum so that
-              the learning rate is less dependent on the batch size
-        """
-        #n_idx = T.arange(y.shape[0])
-        #difference = T.square(self.p_y_given_x - y)[n_idx]
         difference = T.square(self.p_y_given_x - y)
-        #difference = theano.printing.Print('difference')(difference)
-        half_mean = T.mean(difference, axis=1)
-        #half_mean = theano.printing.Print('half_mean')(half_mean)
-        full_mean = T.mean(half_mean)
-        #full_mean = theano.printing.Print('full_mean')(full_mean)
-        return full_mean
+        return T.mean(T.mean(difference, axis=1))
 
     def errors(self, y):
         """Return a float representing the number of errors in the minibatch
