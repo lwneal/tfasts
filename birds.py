@@ -61,9 +61,11 @@ def demonstrate_classifier(audio_dir, classifier):
             input_list = []
             for offset in [-3, -2, -1, 0, 1, 2, 3]:
                 input_list.append(spec[:, col + offset])
-            input_x = numpy.concatenate(input_list, axis=1)
-            assert input_x[0] == input_x[256] == input_x[512] == 0
-            label[:, col] = classifier([input_x])[0]
+            input_x = numpy.concatenate(input_list)
+            # here 256x7 is the input to the convnet, and 100 is the batch size
+            # the classifier only wants entire batches at a time
+            classifier_input = input_x.reshape((1, 256, 7)).repeat(100, axis=0).reshape( (100, 1, 256, 7) )
+            label[:, col] = classifier(classifier_input)[0]
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
         #Image.fromarray(comparison).show()

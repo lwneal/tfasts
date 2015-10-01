@@ -17,6 +17,7 @@ import theano
 import theano.tensor as T
 
 from logistic_sgd import LogisticRegression
+from convnet import LeNetConvPoolLayer
 
 
 # early-stopping parameters
@@ -224,6 +225,8 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
+    nkerns = [20, 50]
+
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -231,16 +234,39 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     # allocate symbolic variables for the data
     index = T.lscalar()  # index to a [mini]batch
-    x = T.matrix('x')  # the data is presented as rasterized images
+    x = T.matrix('x')
     y = T.matrix('y')  # Labels are masks over the spectrogram
 
     rng = numpy.random.RandomState(1234)
 
+    layer0_input = x.reshape( (batch_size, 1, 256, 7) )
+
+    layer0 = LeNetConvPoolLayer(
+        rng,
+        input=layer0_input,
+        image_shape=(batch_size, 1, 256, 7),
+        filter_shape=(nkerns[0], 1, 3, 3),
+        poolsize=(2,2)
+    )
+
+    """
+    layer1 = LeNetConvPoolLayer(
+        rng,
+        input=layer0.output,
+        image_shape=(batch_size, nkerns[0], 127, 2),
+        filter_shape=(nkerns[1], nkerns[0], 3, 3),
+        poolsize=(2,2)
+    )
+
+    layer2_input = layer1.output.flatten(2)
+    """
+    classifier_input = layer0.output.flatten(2)
+
     # construct the MLP class
     classifier = MLP(
         rng=rng,
-        input=x,
-        n_in=n_in,
+        input=classifier_input,
+        n_in=nkerns[0] * (256-2)/2 * (7-3)/2,
         n_hidden=n_hidden,
         n_out=n_out
     )
@@ -327,7 +353,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
     predict_model = theano.function(
-            inputs=[classifier.input],
+            inputs=[layer0_input],
             outputs=classifier.y_pred)
     return predict_model
 
