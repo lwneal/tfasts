@@ -39,12 +39,6 @@ def evaluate(output_dir, label_files, threshold):
         false_neg += fn
         recall = 1.0 * true_pos / (0.1 + true_pos + false_neg)
         precision = 1.0 * true_neg / (0.1 + true_neg + false_pos)
-        #print "Recall {} precision {}".format(recall, precision)
-    print "Threshold {}".format(threshold)
-    print "True positive: {0}".format(true_pos)
-    print "False positive: {0}".format(false_pos)
-    print "True negative: {0}".format(true_neg)
-    print "False negative: {0}".format(false_neg)
     return recall, precision
 
 
