@@ -9,6 +9,7 @@ import numpy
 import scipy
 from PIL import Image
 from scipy import signal
+from scipy.io import wavfile
 
 
 KERNEL_WIDTH=16
@@ -18,24 +19,19 @@ SPECTROGRAM_HEIGHT = 256
 
 # Requires: Mono 16-bit uncompressed little-endian PCM WAV
 def load_wav(filename):
-    wavfile = wave.open(filename)
-    assert wavfile.getsampwidth() == 2
-    assert wavfile.getnchannels() == 1
-    samples = []
-    for i in range(wavfile.getnframes()):
-        sample = struct.unpack('<h', wavfile.readframes(1))
-        samples.extend(sample)
-    freq = wavfile.getparams()[2]
-    len_sec = 1.0 * len(samples) / freq
-    print "Loaded {} length {} seconds".format(filename, len_sec)
-    return samples
+    rate, data = wavfile.read(filename)
+    return list(data)
 
 
 def make_spectrogram(samples):
-    spec = signal.spectrogram(samples, nperseg=SPECTROGRAM_HEIGHT * 2, noverlap=SPECTROGRAM_HEIGHT/2, window='hamming')
-    # Zero out low frequencies, remove zeroth element
-    spec[2][:8] = 0
-    data = spec[2][1:]
+    f, t, spec = signal.spectrogram(samples, nperseg=SPECTROGRAM_HEIGHT * 2, noverlap=SPECTROGRAM_HEIGHT/2, window='hamming')
+
+    # Remove zeroth element
+    data = spec[1:]
+
+    # Zero out low frequencies
+    data[:8] = 0
+
     # Apply filtering
     data = whitening_filter(data)
     # Normalize the spectrogram
@@ -70,39 +66,45 @@ def whitening_filter(spec, sample_pc=0.20):
 def load_image(filename):
     img = Image.open(filename)
     data = numpy.array(img.getdata(), numpy.uint8).reshape(img.size[1], img.size[0])
-    for row in range(data.shape[0]):
-      for col in range(data.shape[1]):
-        data[row][col] = 1.0 if data[row][col] > 0 else 0
     return data
 
 
 def extract_example(audio_filepath, label_filepath, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
-    # Takes 450ms loading 936x256 15-second from SSD on my macbook
+    # Takes <1ms (thanks, scipy!)
     label = load_image(label_filepath)
-    # Takes 650ms
+
+    # Takes <1ms (thanks, scipy!)
     wav = load_wav(audio_filepath)
+
     # Takes 100ms
     spec = make_spectrogram(wav)
 
-    labels = scipy.misc.imresize(label.transpose(), (spec.shape[0], spec.shape[1]))
+    # Takes <1ms
+    labels = scipy.misc.imresize(label.transpose(), (spec.shape[0], spec.shape[1])) * (1.0 / 256)
+    print "Loaded {} spectrogram size {} with labels min {} max {}".format(
+        audio_filepath, spec.shape, labels.min(), labels.max())
 
+    # Takes 200ms
     x_list = []
     y_list = []
     for i in range(height/2, spec.shape[0] - height/2 - 1):
       for j in range(width/2, spec.shape[1] - width/2 - 1):
         label = labels[i, j]
-        # HACK: Sample 1% of negative examples
+        # HACK: Sample 1% of negative examples to keep the size down
         if label == 0 and random.random() < 0.99:
           continue
-        top, bottom = i - height/2, i + height/2
-        left, right = j - width/2, j + width/2
-        sample = spec[top:bottom, left:right].flatten()
-        x_list.append(sample)
+        x_list.append(extract_feature_vector(spec, i, j))
         y_list.append(label)
 
     x_vector = numpy.array(x_list)
     y_vector = numpy.array(y_list)
     return x_vector, y_vector
+
+
+def extract_feature_vector(spec, row, col):
+    top, bottom = row - KERNEL_HEIGHT/2, row + KERNEL_HEIGHT/2
+    left, right = col - KERNEL_WIDTH/2, col + KERNEL_WIDTH/2
+    return spec[top:bottom, left:right].flatten()
 
 
 def extract_examples(audio_dir, label_dir, file_count=None):

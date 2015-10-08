@@ -57,22 +57,22 @@ def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KER
         samples = load_wav(os.path.join(audio_dir, filename))
         spec = make_spectrogram(samples)
         label = numpy.zeros(spec.shape)
+        column_height = spec.shape[0] - height - 1
         for j in range(width/2, spec.shape[1] - width/2 - 1):
             input_list = []
             for i in range(height/2, spec.shape[0] - height/2 - 1):
-                input_x = spec[:,j]
-                top, bottom = i - height/2, i + height/2
-                left, right = j - width/2, j + width/2
-                sample = spec[top:bottom, left:right].flatten()
-                input_list.append(sample)
-            x_array = numpy.array(input_list)
-            column_height = spec.shape[0] - height - 1
-            input_x = x_array.reshape((column_height, 1, height, width))
-            output_y = classifier(input_x)
-            label[height/2:spec.shape[0] - height/2 - 1, j] = output_y.reshape((column_height,))
+                input_list.append(spectrograms.extract_feature_vector(spec, row=i, col=j))
+            input_x = numpy.array(input_list).reshape((column_height, 1, height, width))
+            print("Input for column {} has max {} min {}".format(j, input_x.max(), input_x.min()))
+            output_y = classifier(input_x).reshape((column_height,))
+            print("Output for column {} has max {} and min {}".format(j, output_y.max(), output_y.min()))
+            label[height/2:spec.shape[0] - height/2 - 1, j] = output_y
+
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
-        #Image.fromarray(comparison).show()
+        img = Image.fromarray(comparison).convert('RGB')
+        img.save('comparisons/' + filename + '.png')
+
         img = Image.fromarray(label * 255).convert('RGB')
         img.save('output/' + filename + '.png')
 
