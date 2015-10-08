@@ -30,31 +30,6 @@ improvement_threshold = 0.9998  # An improvement of less than this is ignored
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
                  activation=T.tanh):
-        """
-        Typical hidden layer of a MLP: units are fully-connected and have
-        sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
-        and the bias vector b is of shape (n_out,).
-
-        NOTE : The nonlinearity used here is tanh
-
-        Hidden unit activation is given by: tanh(dot(input,W) + b)
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.dmatrix
-        :param input: a symbolic tensor of shape (n_examples, n_in)
-
-        :type n_in: int
-        :param n_in: dimensionality of input
-
-        :type n_out: int
-        :param n_out: number of hidden units
-
-        :type activation: theano.Op or function
-        :param activation: Non linearity to be applied in the hidden
-                           layer
-        """
         self.input = input
         # end-snippet-1
 
@@ -100,122 +75,16 @@ class HiddenLayer(object):
         self.params = [self.W, self.b]
 
 
-# start-snippet-2
-class MLP(object):
-    """Multi-Layer Perceptron Class
-
-    A multilayer perceptron is a feedforward artificial neural network model
-    that has one layer or more of hidden units and nonlinear activations.
-    Intermediate layers usually have as activation function tanh or the
-    sigmoid function (defined here by a ``HiddenLayer`` class)  while the
-    top layer is a softmax layer (defined here by a ``LogisticRegression``
-    class).
-    """
-
-    def __init__(self, rng, input, n_in, n_hidden, n_out):
-        """Initialize the parameters for the multilayer perceptron
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.TensorType
-        :param input: symbolic variable that describes the input of the
-        architecture (one minibatch)
-
-        :type n_in: int
-        :param n_in: number of input units, the dimension of the space in
-        which the datapoints lie
-
-        :type n_hidden: int
-        :param n_hidden: number of hidden units
-
-        :type n_out: int
-        :param n_out: number of output units, the dimension of the space in
-        which the labels lie
-
-        """
-        def relu(x):
-          return T.switch(x < 0, 0, x)
-
-        self.hiddenLayer = HiddenLayer(
-            rng=rng,
-            input=input,
-            n_in=n_in,
-            n_out=n_hidden,
-            activation=relu
-        )
-
-        self.logRegressionLayer = LogisticRegression(
-            input=self.hiddenLayer.output,
-            n_in=n_hidden,
-            n_out=n_out
-        )
-
-        # L1 norm ; one regularization option is to enforce L1 norm to be small
-        self.L1 = (
-            abs(self.hiddenLayer.W).sum()
-            + abs(self.logRegressionLayer.W).sum()
-        )
-
-        # square of L2 norm ; one regularization option is to enforce
-        # square of L2 norm to be small
-        self.L2_sqr = (
-            (self.hiddenLayer.W ** 2).sum()
-            + (self.logRegressionLayer.W ** 2).sum()
-        )
-
-        # negative log likelihood of the MLP is given by the negative
-        # log likelihood of the output of the model, computed in the
-        # logistic regression layer
-        self.negative_log_likelihood = (
-            self.logRegressionLayer.negative_log_likelihood
-        )
-        # same holds for the function computing the number of errors
-        self.errors = self.logRegressionLayer.errors
-
-        # the parameters of the model are the parameters of the two layer it is
-        # made out of
-        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
-        # end-snippet-3
-
-        # keep track of model input
-        self.input = input
-
-        # pass through for results of output layer
-        self.y_pred = self.logRegressionLayer.y_pred
-
-
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
              learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
              batch_size=20, n_hidden=500, n_in=32*32, n_out=2):
-    """
-    Demonstrate stochastic gradient descent optimization for a multilayer
-    perceptron
-
-    This is demonstrated on MNIST.
-
-    :type learning_rate: float
-    :param learning_rate: learning rate used (factor for the stochastic
-    gradient
-
-    :type L1_reg: float
-    :param L1_reg: L1-norm's weight when added to the cost (see
-    regularization)
-
-    :type L2_reg: float
-    :param L2_reg: L2-norm's weight when added to the cost (see
-    regularization)
-
-    :type n_epochs: int
-    :param n_epochs: maximal number of epochs to run the optimizer
-    """
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
-    nkerns = [13, 17]
+    nkerns = [20, 50]
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -229,28 +98,28 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     rng = numpy.random.RandomState(1234)
 
-    layer0_input = x.reshape((batch_size, 1, 32, 32))
+    layer0_input = x.reshape((batch_size, 1, 16, 16))
 
-    # input: 32*32
-    # filtered: (32-5+1) = 28*28
-    # pooled: 28/2 = 14*14
-    # 4D output tensor is thus of shape (batch_size, nkerns[0], 14, 14)
+    # input: 16x16
+    # filtered: (16-5+1) = 12x12
+    # pooled: 12/2 = 6x6
+    # 4D output tensor is thus of shape (batch_size, nkerns[0], 6, 6)
     layer0 = LeNetConvPoolLayer(
         rng,
         input=layer0_input,
-        image_shape=(batch_size, 1, 32, 32),
+        image_shape=(batch_size, 1, 16, 16),
         filter_shape=(nkerns[0], 1, 5, 5),
         poolsize=(2,2)
     )
 
     # Construct the second convolutional pooling layer
-    # filtering reduces the image size to (14-3+1, 14-3+1) = (12, 12)
-    # maxpooling reduces this further to (12/2, 12/2) = (6, 6)
-    # 4D output tensor is thus of shape (batch_size, nkerns[1], 6, 6)
+    # filtering reduces the image size to (6-3+1, 6-3+1) = (4, 4)
+    # maxpooling reduces this further to (12/2, 12/2) = (2, 2)
+    # 4D output tensor is thus of shape (batch_size, nkerns[1], 2, 2)
     layer1 = LeNetConvPoolLayer(
         rng,
         input=layer0.output,
-        image_shape=(batch_size, nkerns[0], 14, 14),
+        image_shape=(batch_size, nkerns[0], 6, 6),
         filter_shape=(nkerns[1], nkerns[0], 3, 3),
         poolsize=(2,2)
     )
@@ -262,7 +131,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     layer2 = HiddenLayer(
         rng,
         input=layer2_input,
-        n_in=nkerns[1] * 6 * 6,
+        n_in=nkerns[1] * 2 * 2,
         n_out=n_hidden,
         activation=T.tanh
     )

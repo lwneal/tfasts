@@ -65,9 +65,11 @@ def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KER
                 left, right = j - width/2, j + width/2
                 sample = spec[top:bottom, left:right].flatten()
                 input_list.append(sample)
-            input_x = numpy.array(input_list).reshape((223, 1, 32, 32))
+            x_array = numpy.array(input_list)
+            column_height = spec.shape[0] - height - 1
+            input_x = x_array.reshape((column_height, 1, height, width))
             output_y = classifier(input_x)
-            label[height/2:spec.shape[0] - height/2 - 1, j] = output_y.reshape((223,))
+            label[height/2:spec.shape[0] - height/2 - 1, j] = output_y.reshape((column_height,))
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
         #Image.fromarray(comparison).show()
@@ -76,13 +78,12 @@ def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KER
 
 
 def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
-    for i in range(10):
-        print("Loading some training data...")
-        training, validation, testing = load_data(wav_dir, label_dir, file_count=5)
-        mlp_classifier = test_mlp(training[0], training[1],
-            validation[0], validation[1],
-            testing[0], testing[1],
-            n_epochs=num_epochs, n_in=32*32, n_out=1, n_hidden=256, learning_rate=.01, batch_size=223)
+    training, validation, testing = load_data(wav_dir, label_dir, file_count)
+    batch_size = spectrograms.SPECTROGRAM_HEIGHT - KERNEL_HEIGHT - 1
+    mlp_classifier = test_mlp(training[0], training[1],
+        validation[0], validation[1],
+        testing[0], testing[1],
+        n_epochs=num_epochs, n_in=16*16, n_out=1, n_hidden=128, learning_rate=.05, batch_size=batch_size)
     with open('birds_mlp_classifier.pkl', 'w') as f:
         cPickle.dump(mlp_classifier, f)
     return mlp_classifier

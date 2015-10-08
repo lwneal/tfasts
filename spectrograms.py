@@ -11,8 +11,8 @@ from PIL import Image
 from scipy import signal
 
 
-KERNEL_WIDTH=32
-KERNEL_HEIGHT=32
+KERNEL_WIDTH=16
+KERNEL_HEIGHT=16
 SPECTROGRAM_HEIGHT = 256
 
 
@@ -29,6 +29,7 @@ def load_wav(filename):
     len_sec = 1.0 * len(samples) / freq
     print "Loaded {} length {} seconds".format(filename, len_sec)
     return samples
+
 
 def make_spectrogram(samples):
     spec = signal.spectrogram(samples, nperseg=SPECTROGRAM_HEIGHT * 2, noverlap=SPECTROGRAM_HEIGHT/2, window='hamming')
