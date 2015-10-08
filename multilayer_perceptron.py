@@ -15,6 +15,7 @@ import docopt
 import numpy
 import theano
 import theano.tensor as T
+from theano.compile.nanguardmode import NanGuardMode
 
 from logistic_sgd import LogisticRegression
 from convnet import LeNetConvPoolLayer
@@ -144,17 +145,8 @@ class MLP(object):
             activation=relu
         )
 
-        # LARRY: Let's add another hidden layer!
-        self.otherHiddenLayer = HiddenLayer(
-            rng=rng,
-            input=self.hiddenLayer.output,
-            n_in=n_hidden,
-            n_out=n_hidden,
-            activation=relu
-        )
-
         self.logRegressionLayer = LogisticRegression(
-            input=self.otherHiddenLayer.output,
+            input=self.hiddenLayer.output,
             n_in=n_hidden,
             n_out=n_out
         )
@@ -162,7 +154,6 @@ class MLP(object):
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = (
             abs(self.hiddenLayer.W).sum()
-            + abs(self.otherHiddenLayer.W).sum()
             + abs(self.logRegressionLayer.W).sum()
         )
 
@@ -170,7 +161,6 @@ class MLP(object):
         # square of L2 norm to be small
         self.L2_sqr = (
             (self.hiddenLayer.W ** 2).sum()
-            + (self.otherHiddenLayer.W ** 2).sum()
             + (self.logRegressionLayer.W ** 2).sum()
         )
 
@@ -185,7 +175,7 @@ class MLP(object):
 
         # the parameters of the model are the parameters of the two layer it is
         # made out of
-        self.params = self.hiddenLayer.params + self.otherHiddenLayer.params + self.logRegressionLayer.params
+        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
         # end-snippet-3
 
         # keep track of model input
@@ -197,7 +187,7 @@ class MLP(object):
 
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
              learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             batch_size=20, n_hidden=500, n_in=28*28, n_out=10):
+             batch_size=20, n_hidden=500, n_in=32*32, n_out=2):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -225,7 +215,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
-    nkerns = [20, 50]
+    nkerns = [13, 17]
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -239,54 +229,57 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     rng = numpy.random.RandomState(1234)
 
-    layer0_input = x.reshape( (batch_size, 1, 256, 7) )
+    layer0_input = x.reshape((batch_size, 1, 32, 32))
 
+    # input: 32*32
+    # filtered: (32-5+1) = 28*28
+    # pooled: 28/2 = 14*14
+    # 4D output tensor is thus of shape (batch_size, nkerns[0], 14, 14)
     layer0 = LeNetConvPoolLayer(
         rng,
         input=layer0_input,
-        image_shape=(batch_size, 1, 256, 7),
-        filter_shape=(nkerns[0], 1, 3, 3),
+        image_shape=(batch_size, 1, 32, 32),
+        filter_shape=(nkerns[0], 1, 5, 5),
         poolsize=(2,2)
     )
 
-    """
+    # Construct the second convolutional pooling layer
+    # filtering reduces the image size to (14-3+1, 14-3+1) = (12, 12)
+    # maxpooling reduces this further to (12/2, 12/2) = (6, 6)
+    # 4D output tensor is thus of shape (batch_size, nkerns[1], 6, 6)
     layer1 = LeNetConvPoolLayer(
         rng,
         input=layer0.output,
-        image_shape=(batch_size, nkerns[0], 127, 2),
+        image_shape=(batch_size, nkerns[0], 14, 14),
         filter_shape=(nkerns[1], nkerns[0], 3, 3),
         poolsize=(2,2)
     )
 
+    # Output of layer1 is (batch_size, nkerns[1] * 6 * 6)
     layer2_input = layer1.output.flatten(2)
-    """
-    classifier_input = layer0.output.flatten(2)
 
-    # construct the MLP class
-    classifier = MLP(
-        rng=rng,
-        input=classifier_input,
-        n_in=nkerns[0] * (256-2)/2 * (7-3)/2,
-        n_hidden=n_hidden,
-        n_out=n_out
+    # construct a fully-connected sigmoidal layer
+    layer2 = HiddenLayer(
+        rng,
+        input=layer2_input,
+        n_in=nkerns[1] * 6 * 6,
+        n_out=n_hidden,
+        activation=T.tanh
     )
 
-    # start-snippet-4
-    # the cost we minimize during training is the negative log likelihood of
-    # the model plus the regularization terms (L1 and L2); cost is expressed
-    # here symbolically
+    # classify the values of the fully-connected sigmoidal layer
+    layer3 = LogisticRegression(input=layer2.output, n_in=n_hidden, n_out=n_out)
+
+    # TODO: Add regularization
     cost = (
-        classifier.negative_log_likelihood(y)
-        + L1_reg * classifier.L1
-        + L2_reg * classifier.L2_sqr
+        layer3.negative_log_likelihood(y)
     )
-    # end-snippet-4
 
     # compiling a Theano function that computes the mistakes that are made
     # by the model on a minibatch
     test_model = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=layer3.errors(y),
         givens={
             x: test_set_x[index * batch_size:(index + 1) * batch_size],
             y: test_set_y[index * batch_size:(index + 1) * batch_size]
@@ -295,17 +288,19 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     validate_model = theano.function(
         inputs=[index],
-        outputs=classifier.errors(y),
+        outputs=layer3.errors(y),
         givens={
             x: valid_set_x[index * batch_size:(index + 1) * batch_size],
             y: valid_set_y[index * batch_size:(index + 1) * batch_size]
         }
     )
 
-    # start-snippet-5
+    # create a list of all model parameters to be fit by gradient descent
+    params = layer3.params + layer2.params + layer1.params + layer0.params
+
     # compute the gradient of cost with respect to theta (sotred in params)
     # the resulting gradients will be stored in a list gparams
-    gparams = [T.grad(cost, param) for param in classifier.params]
+    gparams = [T.grad(cost, param) for param in params]
 
     # specify how to update the parameters of the model as a list of
     # (variable, update expression) pairs
@@ -316,7 +311,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     #    C = [(a1, b1), (a2, b2), (a3, b3), (a4, b4)]
     updates = [
         (param, param - learning_rate * gparam)
-        for param, gparam in zip(classifier.params, gparams)
+        for param, gparam in zip(params, gparams)
     ]
 
     # compiling a Theano function `train_model` that returns the cost, but
@@ -354,7 +349,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     predict_model = theano.function(
             inputs=[layer0_input],
-            outputs=classifier.y_pred)
+            outputs=layer3.y_pred)
     return predict_model
 
 

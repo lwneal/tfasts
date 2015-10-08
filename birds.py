@@ -25,7 +25,7 @@ import numpy
 from PIL import Image
 import spectrograms
 from spectrograms import extract_examples, load_wav, make_spectrogram
-from spectrograms import PADDING
+from spectrograms import KERNEL_WIDTH, KERNEL_HEIGHT
 import theano
 
 from multilayer_perceptron import test_mlp
@@ -52,20 +52,22 @@ def load_data(audio_dir, label_dir, file_count=None):
     return [(shared(x), shared(y)) for (x, y) in rval]
 
 
-def demonstrate_classifier(audio_dir, classifier):
+def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
     for filename in os.listdir(audio_dir):
         samples = load_wav(os.path.join(audio_dir, filename))
         spec = make_spectrogram(samples)
         label = numpy.zeros(spec.shape)
-        for col in range(PADDING, spec.shape[1] - PADDING):
+        for j in range(width/2, spec.shape[1] - width/2 - 1):
             input_list = []
-            for offset in [-3, -2, -1, 0, 1, 2, 3]:
-                input_list.append(spec[:, col + offset])
-            input_x = numpy.concatenate(input_list)
-            # here 256x7 is the input to the convnet, and 100 is the batch size
-            # the classifier only wants entire batches at a time
-            classifier_input = input_x.reshape((1, 256, 7)).repeat(100, axis=0).reshape( (100, 1, 256, 7) )
-            label[:, col] = classifier(classifier_input)[0]
+            for i in range(height/2, spec.shape[0] - height/2 - 1):
+                input_x = spec[:,j]
+                top, bottom = i - height/2, i + height/2
+                left, right = j - width/2, j + width/2
+                sample = spec[top:bottom, left:right].flatten()
+                input_list.append(sample)
+            input_x = numpy.array(input_list).reshape((223, 1, 32, 32))
+            output_y = classifier(input_x)
+            label[height/2:spec.shape[0] - height/2 - 1, j] = output_y.reshape((223,))
         print("Label mean is {0} max is {1}".format(numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
         #Image.fromarray(comparison).show()
@@ -74,11 +76,13 @@ def demonstrate_classifier(audio_dir, classifier):
 
 
 def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
-    training, validation, testing = load_data(wav_dir, label_dir, file_count)
-    mlp_classifier = test_mlp(training[0], training[1],
-        validation[0], validation[1],
-        testing[0], testing[1],
-        n_epochs=num_epochs, n_in=7 * 256, n_out=256, n_hidden=256, learning_rate=1.0, batch_size=100)
+    for i in range(10):
+        print("Loading some training data...")
+        training, validation, testing = load_data(wav_dir, label_dir, file_count=5)
+        mlp_classifier = test_mlp(training[0], training[1],
+            validation[0], validation[1],
+            testing[0], testing[1],
+            n_epochs=num_epochs, n_in=32*32, n_out=1, n_hidden=256, learning_rate=.01, batch_size=223)
     with open('birds_mlp_classifier.pkl', 'w') as f:
         cPickle.dump(mlp_classifier, f)
     return mlp_classifier
@@ -103,4 +107,3 @@ if __name__ == '__main__':
     if unlabeled_dir:
         demonstrate_classifier(arguments['--unlabeled'], mlp_classifier)
 
-    import pdb; pdb.set_trace()

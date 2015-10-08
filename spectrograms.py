@@ -11,6 +11,11 @@ from PIL import Image
 from scipy import signal
 
 
+KERNEL_WIDTH=32
+KERNEL_HEIGHT=32
+SPECTROGRAM_HEIGHT = 256
+
+
 # Requires: Mono 16-bit uncompressed little-endian PCM WAV
 def load_wav(filename):
     wavfile = wave.open(filename)
@@ -25,9 +30,8 @@ def load_wav(filename):
     print "Loaded {} length {} seconds".format(filename, len_sec)
     return samples
 
-
-def make_spectrogram(samples, desired_height=256):
-    spec = signal.spectrogram(samples, nperseg=512, noverlap=128, window='hamming')
+def make_spectrogram(samples):
+    spec = signal.spectrogram(samples, nperseg=SPECTROGRAM_HEIGHT * 2, noverlap=SPECTROGRAM_HEIGHT/2, window='hamming')
     # Zero out low frequencies, remove zeroth element
     spec[2][:8] = 0
     data = spec[2][1:]
@@ -71,8 +75,7 @@ def load_image(filename):
     return data
 
 
-PADDING = 8
-def extract_example(audio_filepath, label_filepath):
+def extract_example(audio_filepath, label_filepath, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
     # Takes 450ms loading 936x256 15-second from SSD on my macbook
     label = load_image(label_filepath)
     # Takes 650ms
@@ -80,13 +83,25 @@ def extract_example(audio_filepath, label_filepath):
     # Takes 100ms
     spec = make_spectrogram(wav)
 
+    labels = scipy.misc.imresize(label.transpose(), (spec.shape[0], spec.shape[1]))
+
     x_list = []
-    for offset in [-3, -2, -1, 0, 1, 2, 3]:
-        x_list.append(numpy.roll(spec.transpose(), offset, axis=0))
-    x = numpy.concatenate(x_list, axis=1)
-    assert x[0][0] == x[0][256] == x[0][512] ==0
-    y = scipy.misc.imresize(label.transpose(), (x.shape[0], 256))
-    return x, y
+    y_list = []
+    for i in range(height/2, spec.shape[0] - height/2 - 1):
+      for j in range(width/2, spec.shape[1] - width/2 - 1):
+        label = labels[i, j]
+        # HACK: Sample 1% of negative examples
+        if label == 0 and random.random() < 0.99:
+          continue
+        top, bottom = i - height/2, i + height/2
+        left, right = j - width/2, j + width/2
+        sample = spec[top:bottom, left:right].flatten()
+        x_list.append(sample)
+        y_list.append(label)
+
+    x_vector = numpy.array(x_list)
+    y_vector = numpy.array(y_list)
+    return x_vector, y_vector
 
 
 def extract_examples(audio_dir, label_dir, file_count=None):
@@ -108,7 +123,7 @@ def extract_examples(audio_dir, label_dir, file_count=None):
         labels.extend(y)
     # Numpy some arrays around?
     examples = numpy.array(examples)
-    labels = numpy.array(labels)
+    labels = numpy.array(labels).reshape(len(labels), 1)
     print "Examples mean {0} max {1}".format(numpy.mean(examples), numpy.max(examples))
     print "Labels mean {0} max {1}".format(numpy.mean(labels), numpy.max(labels))
     return examples, labels
