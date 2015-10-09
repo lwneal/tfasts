@@ -1,6 +1,6 @@
 """
 Usage:
-  birds.py --wavs=DIR --labels=DIR [--unlabeled=DIR] [--file-count=COUNT] [--save-data=NAME] [--load-data=NAME] [--epochs=EPOCHS]
+  birds.py [--wavs=DIR] [--labels=DIR] [--unlabeled=DIR] [--file-count=COUNT] [--save-data=NAME] [--load-data=NAME] [--epochs=EPOCHS]
 
 Options:
   --wavs=DIR               Directory containing training .wav files
@@ -66,7 +66,7 @@ def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KER
             output_y = classifier(input_x).reshape((column_height,))
             label[height/2:spec.shape[0] - height/2 - 1, j] = output_y
 
-        print("File {} label mean is {0} max is {1}".format(filename, numpy.mean(label), numpy.max(label)))
+        print("File {} label mean is {} max is {}".format(filename, numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
         img = Image.fromarray(comparison).convert('RGB')
         img.save('comparisons/' + filename + '.png')
@@ -91,8 +91,8 @@ if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
     num_epochs = int(arguments['--epochs'])
 
-    wav_dir = expanduser(arguments['--wavs'])
-    labels = expanduser(arguments['--labels'])
+    wav_dir = expanduser(arguments['--wavs']) if arguments['--wavs'] else None
+    labels = expanduser(arguments['--labels']) if wav_dir else None
     unlabeled_dir = expanduser(arguments['--unlabeled']) if arguments['--unlabeled'] else None
     file_count = int(arguments['--file-count']) if arguments['--file-count'] else None
 
