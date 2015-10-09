@@ -241,7 +241,7 @@ def train_models(
             print("Demonstrating classifier after epoch {}...".format(epoch))
             import birds
             demo_dir = 'demos'
-            birds.demonstrate_classifier(demo_dir, predict_model, output_dir=demo_dir)
+            birds.demonstrate_classifier(demo_dir, predict_model, output_dir=demo_dir, suffix = '-{}'.format(epoch))
             epoch += 1
         except KeyboardInterrupt as e:
             print e

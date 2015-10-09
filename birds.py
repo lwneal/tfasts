@@ -53,8 +53,8 @@ def load_data(audio_dir, label_dir, file_count=None):
     return [(shared(x), shared(y)) for (x, y) in rval]
 
 
-def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH, height=KERNEL_HEIGHT, file_count=None):
-    files = os.listdir(audio_dir)
+def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH, height=KERNEL_HEIGHT, file_count=None, suffix=None):
+    files = [f for f in os.listdir(audio_dir) if f.endswith('.wav')]
     if file_count:
         random.shuffle(files)
         files = files[:file_count]
@@ -74,6 +74,8 @@ def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH
         print("File {} label mean is {} max is {}".format(filename, numpy.mean(label), numpy.max(label)))
         comparison = numpy.concatenate( [spec, label] ) * 255.0
         img = Image.fromarray(comparison).convert('RGB')
+        if suffix:
+            filename = filename + suffix
         img.save('comparisons/' + filename + '.png')
 
         img = Image.fromarray(label * 255).convert('RGB')
@@ -86,7 +88,7 @@ def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
     mlp_classifier = test_mlp(training[0], training[1],
         validation[0], validation[1],
         testing[0], testing[1],
-        n_epochs=num_epochs, n_in=16*16, n_out=1, n_hidden=128, learning_rate=.05, batch_size=batch_size)
+        n_epochs=num_epochs, n_in=16*16, n_out=1, n_hidden=128, learning_rate=.15, batch_size=batch_size)
     with open('birds_mlp_classifier.pkl', 'w') as f:
         cPickle.dump(mlp_classifier, f)
     return mlp_classifier
