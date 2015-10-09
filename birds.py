@@ -53,8 +53,12 @@ def load_data(audio_dir, label_dir, file_count=None):
     return [(shared(x), shared(y)) for (x, y) in rval]
 
 
-def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
-    for filename in os.listdir(audio_dir):
+def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH, height=KERNEL_HEIGHT, file_count=None):
+    files = os.listdir(audio_dir)
+    if file_count:
+        random.shuffle(files)
+        files = files[:file_count]
+    for filename in files:
         samples = load_wav(os.path.join(audio_dir, filename))
         spec = make_spectrogram(samples)
         label = numpy.zeros(spec.shape)

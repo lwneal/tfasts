@@ -197,6 +197,11 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     )
     # end-snippet-5
 
+    # Model used to run predictions: takes one batch (one spectrogram column) at a time
+    predict_model = theano.function(
+            inputs=[layer0_input],
+            outputs=layer3.y_pred)
+
     ###############
     # TRAIN MODEL #
     ###############
@@ -205,7 +210,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     start_time = timeit.default_timer()
 
     best_validation_loss, best_iter, test_score = train_models(
-            train_model, validate_model, test_model,
+            predict_model, train_model, validate_model, test_model,
             n_epochs, n_train_batches, n_valid_batches, n_test_batches)
 
     end_time = timeit.default_timer()
@@ -216,14 +221,11 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
-    predict_model = theano.function(
-            inputs=[layer0_input],
-            outputs=layer3.y_pred)
     return predict_model
 
 
 def train_models(
-        train_model, validate_model, test_model, 
+        predict_model, train_model, validate_model, test_model, 
         n_epochs, n_train_batches, n_valid_batches, n_test_batches):
     best_validation_loss = numpy.inf
     best_iter = 0
@@ -236,6 +238,10 @@ def train_models(
                 train_model, validate_model, test_model,
                 epoch, n_train_batches, n_valid_batches, n_test_batches,
                 best_validation_loss, best_iter, test_score, patience)
+            print("Demonstrating classifier after epoch {}...".format(epoch))
+            import birds
+            demo_dir = 'demos'
+            birds.demonstrate_classifier(demo_dir, predict_model, output_dir=demo_dir)
             epoch += 1
         except KeyboardInterrupt as e:
             print e
