@@ -1,6 +1,6 @@
 """
 Usage:
-  birds.py [--wavs=DIR] [--labels=DIR] [--unlabeled=DIR] [--file-count=COUNT] [--save-data=NAME] [--load-data=NAME] [--epochs=EPOCHS]
+  birds.py [--wavs=DIR] [--labels=DIR] [--unlabeled=DIR] [--file-count=COUNT] [--save-data=NAME] [--load-data=NAME] [--epochs=EPOCHS] [--output=OUTPUT]
 
 Options:
   --wavs=DIR               Directory containing training .wav files
@@ -10,6 +10,7 @@ Options:
   --save-data=NAME         Location to save classifier
   --load-data=NAME         Location to read previously-trained classifier
   --epochs=EPOCHS          Number of epochs to run [default: 10]
+  --output=OUTPUT          Directory to output .png label files [default: output/]
 
 Ensure .wav files are 16-bit mono PCM at 16khz.
 Ensure .bmp have 256 pixels height
@@ -52,7 +53,7 @@ def load_data(audio_dir, label_dir, file_count=None):
     return [(shared(x), shared(y)) for (x, y) in rval]
 
 
-def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
+def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH, height=KERNEL_HEIGHT):
     for filename in os.listdir(audio_dir):
         samples = load_wav(os.path.join(audio_dir, filename))
         spec = make_spectrogram(samples)
@@ -72,7 +73,7 @@ def demonstrate_classifier(audio_dir, classifier, width=KERNEL_WIDTH, height=KER
         img.save('comparisons/' + filename + '.png')
 
         img = Image.fromarray(label * 255).convert('RGB')
-        img.save('output/' + filename + '.png')
+        img.save(os.path.join(output_dir, filename) + '.png')
 
 
 def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
@@ -95,6 +96,7 @@ if __name__ == '__main__':
     labels = expanduser(arguments['--labels']) if wav_dir else None
     unlabeled_dir = expanduser(arguments['--unlabeled']) if arguments['--unlabeled'] else None
     file_count = int(arguments['--file-count']) if arguments['--file-count'] else None
+    output_dir = arguments['--output']
 
     if wav_dir:
         mlp_classifier = train_classifier(wav_dir, labels, num_epochs, file_count)
@@ -104,5 +106,5 @@ if __name__ == '__main__':
             mlp_classifier = cPickle.load(f)
 
     if unlabeled_dir:
-        demonstrate_classifier(arguments['--unlabeled'], mlp_classifier)
+        demonstrate_classifier(arguments['--unlabeled'], mlp_classifier, output_dir)
 
