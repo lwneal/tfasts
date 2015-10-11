@@ -48,6 +48,6 @@ def ls(dir):
 if __name__ == '__main__':
     output_dir = sys.argv[1]
     label_files = ls('setA/labels') + ls('setB/labels')
-    for threshold in numpy.arange(100, 110, 1.0):
+    for threshold in numpy.arange(0, 255, 1.0):
         recall, precision = evaluate(output_dir, label_files, threshold)
         print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
