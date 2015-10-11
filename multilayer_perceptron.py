@@ -141,7 +141,11 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     # TODO: Add regularization
     cost = (
-        layer3.negative_log_likelihood(y)
+        layer3.negative_log_likelihood(y) + 
+	L2_reg * (layer0.W ** 2).sum() +
+	L2_reg * (layer1.W ** 2).sum() +
+	L2_reg * (layer2.W ** 2).sum() +
+	L2_reg * (layer3.W ** 2).sum()
     )
 
     # compiling a Theano function that computes the mistakes that are made
