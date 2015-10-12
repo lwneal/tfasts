@@ -33,9 +33,8 @@ def make_spectrogram(samples):
     data[:8] = 0
 
     # Apply filtering
-    data = whitening_filter(data)
-    # Normalize the spectrogram
-    data *= 1.0 / data.max()
+    data = numpy.power(data, 0.5)
+    data = data * (1.0 / data.mean())
     return data
 
 
