@@ -1,3 +1,12 @@
+"""
+Usage: 
+    eval.py [--equal-precision-recall] <output_dir>
+
+Arguments:
+    <output_dir>                    Output spectrogram probability masks
+    --equal-precision-recall        If set, output the point where the precision and recall are equal
+"""
+import docopt
 import sys
 import os
 
@@ -45,9 +54,25 @@ def evaluate(output_dir, label_files, threshold):
 def ls(dir):
     return [os.path.join(dir, f) for f in os.listdir(dir)]
 
+
 if __name__ == '__main__':
-    output_dir = sys.argv[1]
+    arguments = docopt.docopt(__doc__)
+    output_dir = arguments['<output_dir>']
     label_files = ls('setA/labels') + ls('setB/labels')
-    for threshold in numpy.arange(0, 255, 1.0):
-        recall, precision = evaluate(output_dir, label_files, threshold)
-        print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
+    if arguments['--equal-precision-recall']:
+        min_threshold = 0
+        max_threshold = 255
+        while True:
+            threshold = (min_threshold + max_threshold) / 2
+            recall, precision = evaluate(output_dir, label_files, threshold)
+            print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
+            if recall < precision:
+                max_threshold = threshold
+            else:
+                min_threshold = threshold
+            if abs(max_threshold - min_threshold) < 1:
+                break
+    else:
+        for threshold in numpy.arange(0, 255, 5.0):
+            recall, precision = evaluate(output_dir, label_files, threshold)
+            print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
