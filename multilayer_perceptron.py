@@ -139,9 +139,12 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     # classify the values of the fully-connected sigmoidal layer
     layer3 = LogisticRegression(input=layer2.output, n_in=n_hidden, n_out=n_out)
 
-    # TODO: Add regularization
     cost = (
         layer3.negative_log_likelihood(y) + 
+	L1_reg * abs(layer0.W).sum() +
+	L1_reg * abs(layer1.W).sum() +
+	L1_reg * abs(layer2.W).sum() +
+	L1_reg * abs(layer3.W).sum() +
 	L2_reg * (layer0.W ** 2).sum() +
 	L2_reg * (layer1.W ** 2).sum() +
 	L2_reg * (layer2.W ** 2).sum() +
