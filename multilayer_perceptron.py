@@ -23,7 +23,7 @@ from convnet import LeNetConvPoolLayer
 
 # early-stopping parameters
 patience_increase = 10  # wait this much longer when a new best is found
-improvement_threshold = 0.9998  # An improvement of less than this is ignored
+improvement_threshold = 0.99998  # An improvement of less than this is ignored
 
 
 # start-snippet-1

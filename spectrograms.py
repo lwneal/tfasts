@@ -32,10 +32,6 @@ def make_spectrogram(samples):
     # Zero out low frequencies
     data[:8] = 0
 
-    # Apply filtering
-    data = whitening_filter(data)
-    # Normalize the spectrogram
-    data *= 1.0 / data.max()
     return data
 
 
@@ -106,7 +102,7 @@ def extract_feature_vector(spec, row, col):
     left, right = col - KERNEL_WIDTH/2, col + KERNEL_WIDTH/2
     data = spec[top:bottom, left:right].flatten()
     # Experiment: Normalize data
-    return data * (1.0 / (data.max() + 0.01))
+    return data * (1.0 / data.max())
 
 
 def extract_examples(audio_dir, label_dir, file_count=None):
