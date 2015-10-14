@@ -112,6 +112,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
         poolsize=(2,2)
     )
 
+    """
     # Construct the second convolutional pooling layer
     # filtering reduces the image size to (6-3+1, 6-3+1) = (4, 4)
     # maxpooling reduces this further to (12/2, 12/2) = (2, 2)
@@ -123,15 +124,16 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
         filter_shape=(nkerns[1], nkerns[0], 3, 3),
         poolsize=(2,2)
     )
+    """
 
     # Output of layer1 is (batch_size, nkerns[1] * 6 * 6)
-    layer2_input = layer1.output.flatten(2)
+    layer2_input = layer0.output.flatten(2)
 
     # construct a fully-connected sigmoidal layer
     layer2 = HiddenLayer(
         rng,
         input=layer2_input,
-        n_in=nkerns[1] * 2 * 2,
+        n_in=nkerns[0] * 6 * 6,
         n_out=n_hidden,
         activation=T.tanh
     )
@@ -142,11 +144,9 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     cost = (
         layer3.negative_log_likelihood(y) + 
 	L1_reg * abs(layer0.W).sum() +
-	L1_reg * abs(layer1.W).sum() +
 	L1_reg * abs(layer2.W).sum() +
 	L1_reg * abs(layer3.W).sum() +
 	L2_reg * (layer0.W ** 2).sum() +
-	L2_reg * (layer1.W ** 2).sum() +
 	L2_reg * (layer2.W ** 2).sum() +
 	L2_reg * (layer3.W ** 2).sum()
     )
@@ -172,7 +172,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     )
 
     # create a list of all model parameters to be fit by gradient descent
-    params = layer3.params + layer2.params + layer1.params + layer0.params
+    params = layer3.params + layer2.params + layer0.params
 
     # compute the gradient of cost with respect to theta (sotred in params)
     # the resulting gradients will be stored in a list gparams

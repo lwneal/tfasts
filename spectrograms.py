@@ -32,7 +32,9 @@ def make_spectrogram(samples):
     # Zero out low frequencies
     data[:8] = 0
 
-    return data
+    # Whitening filter and PDF
+    data = whitening_filter(data)
+    return data / data.sum(axis=0, keepdims=True)
 
 
 def whitening_filter(spec, sample_pc=0.20):
