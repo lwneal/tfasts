@@ -15,4 +15,5 @@ for DIR in output demos comparisons; do
     scp -r ${IP}:ml-demo/${DIR}/* ${DIR}_${NAME}
 done
 
+open comparisons_${NAME}
 python eval.py --equal-precision-recall output_$NAME

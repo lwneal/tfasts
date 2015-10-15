@@ -63,16 +63,16 @@ if __name__ == '__main__':
         min_threshold = 0
         max_threshold = 255
         while True:
-            threshold = (min_threshold + max_threshold) / 2
+            threshold = (min_threshold + max_threshold + 1) / 2
             recall, precision = evaluate(output_dir, label_files, threshold)
-            print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
+            print "Threshold {0}\tRecall {1}\tPrecision {2}\tAvg {3}".format(threshold, recall, precision, (recall+ precision) / 2)
             if recall < precision:
                 max_threshold = threshold
             else:
                 min_threshold = threshold
-            if abs(max_threshold - min_threshold) < 1:
+            if abs(max_threshold - min_threshold) <= 1:
                 break
     else:
         for threshold in numpy.arange(0, 255, 5.0):
             recall, precision = evaluate(output_dir, label_files, threshold)
-            print "Threshold {0}\tRecall {1}\tPrecision {2}".format(threshold, recall, precision)
+            print "Threshold {0}\tRecall {1}\tPrecision {2}\tAvg {3}".format(threshold, recall, precision, (recall+ precision) / 2)
