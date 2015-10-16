@@ -84,7 +84,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
-    nkerns = [100, 50]
+    nkerns = [256, 50]
 
     ######################
     # BUILD ACTUAL MODEL #
