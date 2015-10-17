@@ -33,6 +33,7 @@ def make_spectrogram(samples):
     data[:8] = 0
 
     data = whitening_filter(data)
+    data *= (1.0 / data.max())
     return data
 
 
