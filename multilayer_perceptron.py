@@ -85,8 +85,6 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
-    nkerns = [256, 50]
-
     ######################
     # BUILD ACTUAL MODEL #
     ######################
@@ -99,42 +97,19 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     rng = numpy.random.RandomState(1234)
 
-    layer0_input = x.reshape((batch_size, 1, 16, 16))
-
-    # input: 16x16
-    # filtered: (16-5+1) = 12x12
-    # pooled: 12/2 = 6x6
-    # 4D output tensor is thus of shape (batch_size, nkerns[0], 6, 6)
-    layer0 = LeNetConvPoolLayer(
+    layer0 = HiddenLayer(
         rng,
-        input=layer0_input,
-        image_shape=(batch_size, 1, 16, 16),
-        filter_shape=(nkerns[0], 1, 5, 5),
-        poolsize=(2,2)
+        input=x,
+        n_in=12*6,
+        n_out=n_hidden,
+        activation=T.tanh
     )
-
-    """
-    # Construct the second convolutional pooling layer
-    # filtering reduces the image size to (6-3+1, 6-3+1) = (4, 4)
-    # maxpooling reduces this further to (12/2, 12/2) = (2, 2)
-    # 4D output tensor is thus of shape (batch_size, nkerns[1], 2, 2)
-    layer1 = LeNetConvPoolLayer(
-        rng,
-        input=layer0.output,
-        image_shape=(batch_size, nkerns[0], 6, 6),
-        filter_shape=(nkerns[1], nkerns[0], 3, 3),
-        poolsize=(2,2)
-    )
-    """
-
-    # Output of layer1 is (batch_size, nkerns[1] * 6 * 6)
-    layer2_input = layer0.output.flatten(2)
 
     # construct a fully-connected sigmoidal layer
     layer2 = HiddenLayer(
         rng,
-        input=layer2_input,
-        n_in=nkerns[0] * 6 * 6,
+        input=layer0.output,
+        n_in=n_hidden,
         n_out=n_hidden,
         activation=T.tanh
     )
@@ -144,12 +119,12 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     cost = (
         layer3.negative_log_likelihood(y) + 
-	L1_reg * abs(layer0.W).sum() +
-	L1_reg * abs(layer2.W).sum() +
-	L1_reg * abs(layer3.W).sum() +
-	L2_reg * (layer0.W ** 2).sum() +
-	L2_reg * (layer2.W ** 2).sum() +
-	L2_reg * (layer3.W ** 2).sum()
+        L1_reg * abs(layer0.W).sum() +
+        L1_reg * abs(layer2.W).sum() +
+        L1_reg * abs(layer3.W).sum() +
+        L2_reg * (layer0.W ** 2).sum() +
+        L2_reg * (layer2.W ** 2).sum() +
+        L2_reg * (layer3.W ** 2).sum()
     )
 
     # compiling a Theano function that computes the mistakes that are made
@@ -207,12 +182,12 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
 
     # Model used to run predictions: takes one batch (one spectrogram column) at a time
     predict_model = theano.function(
-            inputs=[layer0_input],
+            inputs=[x],
             outputs=layer3.y_pred)
 
     weights_model = theano.function(
         inputs=[],
-        outputs=layer0.W
+        outputs=(layer0.W, layer2.W, layer3.W)
     )
 
     ###############
@@ -241,6 +216,7 @@ def render_conv_kernels(weights):
     """
     The input weights should be ie. shape (256, 1, 5, 5) for 256 kernels each 5x5
     """
+    import pdb; pdb.set_trace()
     kernel_count, _, kernel_height, kernel_width = weights.shape
     col_count = 16
     row_count = int(numpy.ceil(1.0 * kernel_count / col_count))
@@ -252,16 +228,29 @@ def render_conv_kernels(weights):
         x = kernel_width * col
         image[y : y + kernel_height, x : x + kernel_width] = weights[k, 0, :, :]
     print("Generating kernel visualization min {} max {}".format(image.min(), image.max()))
-    return (image * 128.0) + 128.0
+    kernel_map = (image * 128.0) + 128.0
+    kernel_img = Image.fromarray(kernel_map).convert('RGB')
+    return kernel_img
+
+
+def render_hidden_layer(weights):
+    print("Generating hidden layer visualization min {} max {}".format(weights.min(), weights.max()))
+    kernel_map = (weights * 128.0) + 128.0
+    kernel_img = Image.fromarray(kernel_map).convert('RGB')
+    return kernel_img
 
 
 def visualize_weights(weights_model, epoch):
-    weights = numpy.array(weights_model())
-    print("Epoch {} weights mean {} min {} max {}".format(
-        epoch, weights.mean(), weights.min(), weights.max()))
-    kernel_map = render_conv_kernels(weights)
-    kernel_img = Image.fromarray(kernel_map).convert('RGB')
-    kernel_img.save('kernels/kernels_epoch_{}.png'.format(epoch))
+    layer0, layer2, layer3 = [numpy.array(w) for w in weights_model()]
+    print("Epoch {} layer0 weights mean {} min {} max {}".format(
+        epoch, layer0.mean(), layer0.min(), layer0.max()))
+    print("Epoch {} layer0 weights mean {} min {} max {}".format(
+        epoch, layer2.mean(), layer2.min(), layer2.max()))
+    print("Epoch {} layer0 weights mean {} min {} max {}".format(
+        epoch, layer3.mean(), layer3.min(), layer3.max()))
+    render_hidden_layer(layer0).save('kernels/layer0_epoch_{}.png'.format(epoch))
+    render_hidden_layer(layer2).save('kernels/layer2_epoch_{}.png'.format(epoch))
+    render_hidden_layer(layer3).save('kernels/layer3_epoch_{}.png'.format(epoch))
 
 
 def train_models(

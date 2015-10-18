@@ -12,8 +12,8 @@ from scipy import signal
 from scipy.io import wavfile
 
 
-KERNEL_WIDTH=16
-KERNEL_HEIGHT=16
+KERNEL_WIDTH=6
+KERNEL_HEIGHT=12
 SPECTROGRAM_HEIGHT = 256
 
 
@@ -99,11 +99,11 @@ def extract_example(audio_filepath, label_filepath, width=KERNEL_WIDTH, height=K
     return x_vector, y_vector
 
 
-def extract_feature_vector(spec, row, col):
+def extract_feature_vector(spec, row, col, meanval=0.5):
     top, bottom = row - KERNEL_HEIGHT/2, row + KERNEL_HEIGHT/2
     left, right = col - KERNEL_WIDTH/2, col + KERNEL_WIDTH/2
     data = spec[top:bottom, left:right].flatten()
-    return data * (0.5 / data.mean())
+    return data * (meanval / data.mean())
 
 
 def extract_examples(audio_dir, label_dir, file_count=None):
