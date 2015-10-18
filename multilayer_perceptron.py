@@ -242,17 +242,26 @@ def render_conv_kernels(weights):
     The input weights should be ie. shape (256, 1, 5, 5) for 256 kernels each 5x5
     """
     kernel_count, _, kernel_height, kernel_width = weights.shape
-    kernels_per_row = 16
-    row_count = numpy.ceil(1.0 * kernel_count / kernels_per_row)
-    image = numpy.zeros((row_count * kernel_height, kernels_per_row * kernel_width))
+    col_count = 16
+    row_count = int(numpy.ceil(1.0 * kernel_count / col_count))
+    image = numpy.zeros((row_count * kernel_height, col_count * kernel_width))
     for k in range(kernel_count):
-        col = k / kernels_per_row
-        row = k % kernels_per_row
+        col = k % col_count
+        row = k / col_count
         y = kernel_height * row
         x = kernel_width * col
         image[y : y + kernel_height, x : x + kernel_width] = weights[k, 0, :, :]
     print("Generating kernel visualization min {} max {}".format(image.min(), image.max()))
     return (image * 128.0) + 128.0
+
+
+def visualize_weights(weights_model, epoch):
+    weights = numpy.array(weights_model())
+    print("Epoch {} weights mean {} min {} max {}".format(
+        epoch, weights.mean(), weights.min(), weights.max()))
+    kernel_map = render_conv_kernels(weights)
+    kernel_img = Image.fromarray(kernel_map).convert('RGB')
+    kernel_img.save('kernels/kernels_epoch_{}.png'.format(epoch))
 
 
 def train_models(
@@ -264,9 +273,7 @@ def train_models(
     patience = 20000  # look as this many examples regardless
     epoch = 0
     while epoch < n_epochs:
-        kernel_map = render_conv_kernels(numpy.array(weights_model()))
-        kernel_img = Image.fromarray(kernel_map).convert('RGB')
-        kernel_img.save('kernels/kernels_epoch_{}.png'.format(epoch))
+        visualize_weights(weights_model, epoch=epoch)
         try:
             best_validation_loss, best_iter, test_score, patience, finished_early = learn_epoch(
                 train_model, validate_model, test_model, weights_model,
@@ -295,14 +302,6 @@ def learn_epoch(train_model, validate_model, test_model, weights_model,
                 train_model, validate_model, test_model, 
                 epoch, minibatch_index, n_train_batches, n_valid_batches, n_test_batches,
                 best_validation_loss, best_iter, test_score, patience)
-        weights = numpy.array(weights_model())
-        print("Minibatch {} out of {} weights mean {} min {} max {}".format(minibatch_index,
-            n_train_batches, weights.mean(), weights.min(), weights.max()))
-        """
-        kernel_map = render_conv_kernels(weights)
-        kernel_img = Image.fromarray(kernel_map).convert('RGB')
-        kernel_img.save('kernels_epoch_{}_{}.png'.format(epoch, minibatch_index))
-        """
         if patience <= calculate_current_iteration(epoch, n_train_batches, minibatch_index):
             return best_validation_loss, best_iter, test_score, patience, True
     return best_validation_loss, best_iter, test_score, patience, False
