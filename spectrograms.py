@@ -91,7 +91,7 @@ def extract_example(audio_filepath, label_filepath, width=KERNEL_WIDTH, height=K
       for j in range(width/2, spec.shape[1] - width/2 - 1):
         label = labels[i, j]
         # HACK: Sample negative examples to keep the size down
-        if label == 0 and random.random() < 0.90:
+        if label == 0 and random.random() < 0.925:
           continue
         x_list.append(extract_feature_vector(spec, i, j))
         y_list.append(label)
