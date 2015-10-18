@@ -12,8 +12,8 @@ from scipy import signal
 from scipy.io import wavfile
 
 
-KERNEL_WIDTH=6
-KERNEL_HEIGHT=12
+KERNEL_WIDTH=12
+KERNEL_HEIGHT=24
 SPECTROGRAM_HEIGHT = 256
 
 
