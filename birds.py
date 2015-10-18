@@ -95,7 +95,7 @@ def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
         learning_rate=.010,
         batch_size=batch_size,
         L1_reg=0,
-        L2_reg=0.000001,
+        L2_reg=0,
         )
     with open('birds_mlp_classifier.pkl', 'w') as f:
         cPickle.dump(mlp_classifier, f)
