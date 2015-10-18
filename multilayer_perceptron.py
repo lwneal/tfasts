@@ -11,6 +11,7 @@ import timeit
 import random
 import time
 
+from PIL import Image
 import docopt
 import numpy
 import theano
@@ -209,6 +210,11 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
             inputs=[layer0_input],
             outputs=layer3.y_pred)
 
+    weights_model = theano.function(
+        inputs=[],
+        outputs=layer0.W
+    )
+
     ###############
     # TRAIN MODEL #
     ###############
@@ -217,7 +223,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     start_time = timeit.default_timer()
 
     best_validation_loss, best_iter, test_score = train_models(
-            predict_model, train_model, validate_model, test_model,
+            predict_model, train_model, validate_model, test_model, weights_model,
             n_epochs, n_train_batches, n_valid_batches, n_test_batches)
 
     end_time = timeit.default_timer()
@@ -231,8 +237,26 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     return predict_model
 
 
+def render_conv_kernels(weights):
+    """
+    The input weights should be ie. shape (256, 1, 5, 5) for 256 kernels each 5x5
+    """
+    kernel_count, _, kernel_height, kernel_width = weights.shape
+    kernels_per_row = 16
+    row_count = numpy.ceil(1.0 * kernel_count / kernels_per_row)
+    image = numpy.zeros((row_count * kernel_height, kernels_per_row * kernel_width))
+    for k in range(kernel_count):
+        col = k / kernels_per_row
+        row = k % kernels_per_row
+        y = kernel_height * row
+        x = kernel_width * col
+        image[y : y + kernel_height, x : x + kernel_width] = weights[k, 0, :, :]
+    print("Generating kernel visualization min {} max {}".format(image.min(), image.max()))
+    return (image * 128.0) + 128.0
+
+
 def train_models(
-        predict_model, train_model, validate_model, test_model, 
+        predict_model, train_model, validate_model, test_model, weights_model,
         n_epochs, n_train_batches, n_valid_batches, n_test_batches):
     best_validation_loss = numpy.inf
     best_iter = 0
@@ -240,9 +264,12 @@ def train_models(
     patience = 20000  # look as this many examples regardless
     epoch = 0
     while epoch < n_epochs:
+        kernel_map = render_conv_kernels(numpy.array(weights_model()))
+        kernel_img = Image.fromarray(kernel_map).convert('RGB')
+        kernel_img.save('kernels/kernels_epoch_{}.png'.format(epoch))
         try:
             best_validation_loss, best_iter, test_score, patience, finished_early = learn_epoch(
-                train_model, validate_model, test_model,
+                train_model, validate_model, test_model, weights_model,
                 epoch, n_train_batches, n_valid_batches, n_test_batches,
                 best_validation_loss, best_iter, test_score, patience)
             print("Demonstrating classifier after epoch {}...".format(epoch))
@@ -260,7 +287,7 @@ def train_models(
     return best_validation_loss, best_iter, test_score
 
 
-def learn_epoch(train_model, validate_model, test_model, 
+def learn_epoch(train_model, validate_model, test_model, weights_model,
         epoch, n_train_batches, n_valid_batches, n_test_batches,
         best_validation_loss, best_iter, test_score, patience):
     for minibatch_index in range(n_train_batches):
@@ -268,6 +295,14 @@ def learn_epoch(train_model, validate_model, test_model,
                 train_model, validate_model, test_model, 
                 epoch, minibatch_index, n_train_batches, n_valid_batches, n_test_batches,
                 best_validation_loss, best_iter, test_score, patience)
+        weights = numpy.array(weights_model())
+        print("Minibatch {} out of {} weights mean {} min {} max {}".format(minibatch_index,
+            n_train_batches, weights.mean(), weights.min(), weights.max()))
+        """
+        kernel_map = render_conv_kernels(weights)
+        kernel_img = Image.fromarray(kernel_map).convert('RGB')
+        kernel_img.save('kernels_epoch_{}_{}.png'.format(epoch, minibatch_index))
+        """
         if patience <= calculate_current_iteration(epoch, n_train_batches, minibatch_index):
             return best_validation_loss, best_iter, test_score, patience, True
     return best_validation_loss, best_iter, test_score, patience, False
