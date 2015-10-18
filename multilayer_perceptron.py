@@ -257,19 +257,20 @@ def train_models(
     best_validation_loss = numpy.inf
     best_iter = 0
     test_score = 0.
-    patience = 20000  # look as this many examples regardless
+    patience = 2000000  # look as this many examples regardless
     epoch = 0
     while epoch < n_epochs:
-        visualize_weights(weights_model, epoch=epoch)
         try:
             best_validation_loss, best_iter, test_score, patience, finished_early = learn_epoch(
                 train_model, validate_model, test_model, weights_model,
                 epoch, n_train_batches, n_valid_batches, n_test_batches,
                 best_validation_loss, best_iter, test_score, patience)
-            print("Demonstrating classifier after epoch {}...".format(epoch))
-            import birds
-            demo_dir = 'demos'
-            birds.demonstrate_classifier(demo_dir, predict_model, output_dir=demo_dir, suffix = '-{}'.format(epoch))
+            if epoch % 10 == 0:
+                visualize_weights(weights_model, epoch=epoch)
+                print("Demonstrating classifier after epoch {}...".format(epoch))
+                import birds
+                demo_dir = 'demos'
+                birds.demonstrate_classifier(demo_dir, predict_model, output_dir=demo_dir, suffix = '-{}'.format(epoch))
             epoch += 1
         except KeyboardInterrupt as e:
             print e
