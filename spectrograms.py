@@ -114,10 +114,13 @@ def extract_examples(audio_dir, label_dir, file_count=None):
     if file_count:
         random.shuffle(label_filenames)
         label_filenames = label_filenames[:file_count]
+    i = 0
     for filename in label_filenames:
         label_filepath = os.path.join(label_dir, filename)
         audio_filepath = os.path.join(audio_dir, filename.replace('bmp', 'wav'))
         x, y = extract_example(audio_filepath, label_filepath)
+        print("Loaded {} / {} examples".format(i, len(label_filenames)))
+        i += 1
         if y.min() < 0.0 or y.max() > 1.0:
           print "bad labels out of valid range"
           import pdb; pdb.set_trace()
