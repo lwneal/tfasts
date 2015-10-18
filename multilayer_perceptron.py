@@ -249,7 +249,6 @@ def visualize_weights(weights_model, epoch):
         epoch, layer3.mean(), layer3.min(), layer3.max()))
     render_hidden_layer(layer0).save('kernels/layer0_epoch_{}.png'.format(epoch))
     render_hidden_layer(layer2).save('kernels/layer2_epoch_{}.png'.format(epoch))
-    render_hidden_layer(layer3).save('kernels/layer3_epoch_{}.png'.format(epoch))
 
 
 def train_models(
