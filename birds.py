@@ -67,7 +67,7 @@ def demonstrate_classifier(audio_dir, classifier, output_dir, width=KERNEL_WIDTH
             input_list = []
             for i in range(height/2, spec.shape[0] - height/2 - 1):
                 input_list.append(spectrograms.extract_feature_vector(spec, row=i, col=j))
-            input_x = numpy.array(input_list).reshape((column_height, height * width))
+            input_x = numpy.array(input_list).reshape((column_height, height * width + 1))
             output_y = classifier(input_x).reshape((column_height,))
             label[height/2:spec.shape[0] - height/2 - 1, j] = output_y
 
@@ -89,7 +89,7 @@ def train_classifier(wav_dir, label_dir, num_epochs, file_count=None):
         validation[0], validation[1],
         testing[0], testing[1],
         n_epochs=num_epochs,
-        n_in=KERNEL_WIDTH * KERNEL_HEIGHT,
+        n_in=KERNEL_WIDTH * KERNEL_HEIGHT + 1,
         n_out=1,
         n_hidden=512,
         learning_rate=.010,

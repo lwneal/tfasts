@@ -77,8 +77,9 @@ class HiddenLayer(object):
 
 
 def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, test_set_y,
-             learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             batch_size=20, n_hidden=500, n_in=32*32, n_out=2):
+        learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+        n_hidden=500, n_in=32*32, n_out=2,
+        batch_size=20):
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
@@ -100,7 +101,7 @@ def test_mlp(train_set_x, train_set_y, valid_set_x, valid_set_y, test_set_x, tes
     layer0 = HiddenLayer(
         rng,
         input=x,
-        n_in=12*6,
+        n_in=n_in,
         n_out=n_hidden,
         activation=T.tanh
     )
