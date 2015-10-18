@@ -216,7 +216,6 @@ def render_conv_kernels(weights):
     """
     The input weights should be ie. shape (256, 1, 5, 5) for 256 kernels each 5x5
     """
-    import pdb; pdb.set_trace()
     kernel_count, _, kernel_height, kernel_width = weights.shape
     col_count = 16
     row_count = int(numpy.ceil(1.0 * kernel_count / col_count))
