@@ -33,9 +33,9 @@ def make_spectrogram(samples):
     data[:8] = 0
 
     #data = whitening_filter(data)
-    data *= (.5 / data.mean())
+    avg = numpy.median(data)
+    data *= (.5 / avg)
     data = numpy.clip(data, 0, 1.0)
-    data *= (.5 / data.mean())
     return data
 
 
