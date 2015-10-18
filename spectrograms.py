@@ -103,7 +103,7 @@ def extract_feature_vector(spec, row, col):
     top, bottom = row - KERNEL_HEIGHT/2, row + KERNEL_HEIGHT/2
     left, right = col - KERNEL_WIDTH/2, col + KERNEL_WIDTH/2
     data = spec[top:bottom, left:right].flatten()
-    return data / (0.5 * data.mean())
+    return data * (0.5 / data.mean())
 
 
 def extract_examples(audio_dir, label_dir, file_count=None):
