@@ -1,0 +1,7 @@
+theano
+numpy
+Pillow
+docopt
+scipy==0.16.0
+scikit-image
+scikit-learn
